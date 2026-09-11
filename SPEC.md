@@ -1,200 +1,229 @@
-# SCIR v0 Specification
+# SCIR 0.2 specification
 
-SCIR (Symbolic Content IR) is a tiny expression language for exchanging
-content between LLM agents.
+This document specifies the proposed breaking 0.2 reference format and API.
+Normative requirements concern symbolic structure, not real-world truth.
 
-Thesis: SCIR formalizes the topology/composition of meaning while leaving
-the meanings of ordinary symbols neural and informal.
+## 1. Content
 
-This document is the v0 language definition. It is not a type system,
-ontology, knowledge graph, planner, or theorem prover.
+Let S be the set of nonempty finite Unicode-scalar strings. No Unicode
+normalization or case folding is performed. A Term is a finite ordered tree:
 
-## Grammar
+    Term = S × List(Term)
+    Document = List(Term)
 
-Whitespace is ignored except that `?` must be adjacent to its identifier.
+The reference Python representation is one immutable `Term(symbol, args)`
+constructor, with `args: tuple[Term, ...]`; a Document is a tuple of Terms.
+There are no content variables, holes, explicit references, or reserved
+logical labels. Different arities of the same label are allowed. Structural
+equality compares labels, child counts, and corresponding ordered children.
 
+Root order and duplicate roots MUST be preserved. Equal subtrees at different
+paths are distinct syntax occurrences. Neither their equality nor their
+inequality determines real-world event identity. Physical object sharing is
+an implementation detail and MUST NOT affect occurrence enumeration.
+
+A root is explicitly presented content. It need not be a factual assertion:
+it can represent a question, command, report, or hypothesis. Nested nodes
+MUST NOT be promoted to roots implicitly. In particular, a root query for
+`A` does not match a document whose only root is `and(A, B)`.
+
+## 2. Surface syntax
+
+```ebnf
+document  = newlines, [term, {separator, term}, [separator]], EOF ;
+separator = newline, newlines | ";", newlines ;
+term      = symbol, ["(", newlines,
+            [term, {newlines, ",", newlines, term}, [newlines, ","]],
+            newlines, ")"] ;
+symbol    = identifier | json_string ;
+identifier = (ASCII_letter | "_"), {ASCII_letter | digit | "_"} ;
+newlines  = {newline} ;
 ```
-expr       ::=  atom | variable | call
-atom       ::=  ident
-variable   ::=  "?" ident
-call       ::=  ident "(" [arglist] ")"
-arglist    ::=  expr ("," expr)*
 
-ident      ::=  letter (letter | digit)*
-letter     ::=  "A"..."Z" | "a"..."z" | "_"
-digit      ::=  "0"..."9"
-```
+Horizontal whitespace and `#` comments extending to newline are trivia.
+Inside JSON-quoted labels `#` is ordinary data. JSON string escapes are
+supported; decoded empty strings and isolated surrogate code points are
+invalid labels. A call head and `(` MUST be on the same logical source line;
+newlines within its parentheses are allowed. There is no grouping syntax.
+Trailing commas inside applications and a trailing document separator are
+accepted. Empty documents are allowed; `parse` still requires exactly one
+term. Complete input consumption is required. `A B` is invalid, not two roots.
 
-- There are no grouping parentheses, number literals, string literals, or comments.
-- A call head is an identifier, never an expression.
-- `Alice` is an atom. `Alice()` is a distinct 0-argument call.
-- `?x` is a variable named `x`. `?` alone is a parse error.
-- Trailing, leading, or doubled commas are parse errors.
-- A complete input is exactly one `expr`. Trailing tokens are a parse error.
+`A()` and `A` parse to the same leaf; the printer emits `A`.
+`"Alice"` and `Alice` parse to the same symbol. A quoted symbol MAY be a head.
+Quotes do not express quotation semantics or a separate literal datatype.
+For exact words as content, an application can use ordinary vocabulary such
+as `text("words")`; the wrapper supplies the convention, not the lexer.
+No unquoted number syntax, assignment, definitions, decorators, imports,
+attribute access, control flow, evaluation, or arbitrary Python execution is
+supported by this surface parser.
 
 ### Canonical print
 
-`str(expr)` is the unique canonical surface form:
+Print a label bare exactly when it matches `identifier`; otherwise use
+JSON quoting with `ensure_ascii=False`. Print nonleaf children in original
+order with comma followed by one space. Leaves have no parentheses.
+Print each root on one line, followed by a newline; the empty document prints
+as the empty string. Comments and original whitespace are not retained.
 
-- no whitespace except a single space after each comma
-- variables printed as `?` immediately followed by the name
-- call arguments printed in order, separated by `", "`
+Within the parser's supported bounds:
 
-Parse/print round-trip preserves canonical structure:
+    parse(str(t)) = t
+    parse_document(format_document(D)) = D
 
-```
-parse(str(parse(s))) == parse(s)
-```
+This is structure preservation, not restoration of original source bytes or
+proof that a translation preserves English meaning.
 
-Whitespace in input is not preserved.
+## 3. Pattern language
 
-## Expression tree
+Patterns are a separate datatype:
 
-```
-Expr := Atom | Variable | Call
-```
+    Pattern = Var(name) | Node(symbol, List(Pattern))
 
-Examples:
+They reuse content syntax with `?identifier` additionally allowed in a term
+position. `?_` is an anonymous wildcard; other names capture a whole ground
+subtree. Bare `_` remains a literal symbol. `"?x"` is a literal label, not a
+capture. Variables cannot appear as call heads or take arguments.
 
-```
-Alice
-?x
-wrong(Chart)
-email(Alice, Bob, Report)
-think(Bob, wrong(Chart))
-before(email(Alice, Bob, Report), leave(Alice, Office))
-```
+`parse_pattern` returns a Pattern; `parse` and `parse_document` MUST reject
+unquoted `?x` and `?_`. The reference types reject pattern children in Terms.
 
-Nodes are immutable. Structural equality and hashing are by constructor and
-contents: `Atom("Alice")` is not `Variable("Alice")` and is not `Call("Alice", ())`.
+`match(P, t)` performs one-way matching, not symmetric unification:
 
-## Ordinary symbols
+* A labelled pattern node matches equal label and arity, then ordered children.
+* A capture binds the corresponding whole Term. Repeated captures require
+  structural equality, not object identity or semantic equivalence.
+* The wildcard matches without creating a binding.
+* Success returns a finite name-to-Term map. Failure returns None. An empty
+  map is successful ground matching and MUST NOT be treated as failure.
 
-Identifiers used as atoms or as call heads have no formally specified
-semantics. Their meaning is interpreted by the LLM.
+`instantiate(P, env)` simultaneously replaces captures by ground terms.
+Missing bindings and wildcards are errors; unused environment entries are
+ignored. There are no binders and consequently no variable-capture operation.
 
-These are ordinary symbols, not operators of the kernel:
+## 4. Occurrences, queries, editing
 
-```
-email  think  wrong  before  yesterday  mistakenly  leave  ...
-```
+A Path is a nonempty tuple `(root_index, child_index, ...)` of nonnegative
+integers. Boolean values do not count as integers for paths. Paths are valid
+only in a particular document snapshot.
 
-The language does not rewrite ordinary symbols (`email(...)` is not
-`send(...)`).
+`walk(D)` yields `(path, term)` for every occurrence in root-order, depth-first
+preorder. `at(D, p)` returns a term or raises ValueError for an invalid path.
 
-## Reserved structural operators
+`query(D, P, scope="roots")` matches roots only. Explicit `scope="all"`
+visits every occurrence. A Hit includes `path`, `term`, and `bindings`.
+No query scope denotes logical consequence. The default is deliberately not
+recursive. Results remain ordered and duplicate occurrences are retained.
 
-Only the following call heads have deterministic structural semantics.
-They are reserved solely as *calls* of the stated arity. An atom named
-`and` is still just an atom.
+`replace_at(D, p, t)` replaces exactly one occurrence, retaining all unrelated
+occurrences. It does not rewrite inside the replacement or update annotations.
+`diff(A, B)` compares positional roots/children. Equal terms are skipped;
+equal head/arity recurses; otherwise it reports the changed frontier. Missing
+roots are represented by None. It is not a minimum-edit or semantic diff.
 
-| Head | Arity | Meaning |
-|---|---|---|
-| `not` | 1 | negation of its argument |
-| `and` | ≥ 2 | conjunction of its arguments, in order |
-| `or` | ≥ 2 | disjunction of its arguments, in order |
-| `if` | 2 | `if(antecedent, consequent)` |
+## 5. Fingerprints
 
-Validation is structural only: parser validity, reserved-operator arity,
-malformed names, and tree-shape invariants. There is no check of
-real-world or ontological meaning.
+`digest(D)` is lower-case SHA-256 hex of:
 
-## Assertion versus occurrence
+    UTF8("scir:0.2:document\n") || UTF8(format_document(D))
 
-An expression *asserts* its top-level tree.
+The prefix is part of the format. No metadata enters the fingerprint.
+This is a content fingerprint, not a unique document-instance identifier,
+event ID, or mathematical guarantee against collisions. Python `hash()`
+is deliberately NOT specified as a persistent wire identifier.
 
-Nested occurrence is not top-level assertion. Scope is exactly the
-expression tree.
+## 6. Relational transport
 
-```
-think(Bob, wrong(Chart))
-```
+`encode(D)` emits the exact key set:
 
-asserts the whole `think(...)` expression. It does **not** independently
-assert `wrong(Chart)`.
+    version: "scir-relations/0.2"
+    nodes: [[id, symbol], ...]
+    args: [[parent_id, position, child_id], ...]
+    roots: [[position, node_id], ...]
 
-These two expressions are distinct, and they assert different trees:
+Every occurrence, INCLUDING every leaf, has a node row. Encoding uses
+preorder IDs starting at zero, without deduplication. Array row order is
+not semantic; the explicit positions determine order.
 
-```
-not(think(Bob, P))
-think(Bob, not(P))
-```
+The decoder MUST validate unique nonnegative integer IDs, valid labels,
+existing edge endpoints, unique contiguous positions beginning at zero,
+unique root nodes, zero incoming edges for roots, exactly one incoming edge
+for nonroots, and reachability of every node from the roots. Cycles, sharing,
+orphan nodes, duplicate rows/positions, unknown keys and unsupported versions
+are rejected. This is a forest transport, not an arbitrary DAG transport.
 
-### `asserted`
+For successful reference encoding:
 
-The *asserted nodes* of an expression `E` are:
+    decode(encode(D)) = D
 
-1. `E` itself, and
-2. if an asserted node is a call `and(...)`, each of its arguments
-   (recursively).
+Renaming node IDs bijectively and permuting row order preserves decoding.
+`encode(decode(R))` canonicalizes occurrence numbering and row order; it need
+not equal the original arbitrary row serialization.
 
-Descent stops at every other constructor: `not`, `or`, `if`, and every
-ordinary call (including `think`). So `or`, `not`, and `if` do not
-independently assert their children.
+## 7. Annotations and ambiguity
 
-`asserted(P)` on subject `E` means: `P` structurally matches at least one
-asserted node of `E`.
+`Annotation(snapshot, path, key, value_json)` is outside content. The snapshot
+is `digest(D)`. `annotate` validates a path and copies JSON metadata into a
+canonical immutable string: sorted keys, no extra whitespace, finite JSON
+numbers, Unicode scalar strings. `Bundle(D, annotations)` validates each
+target against D and rejects stale fingerprints and invalid paths.
 
-### `occurs`
+    erase(Bundle(D, M)) = D
 
-`occurs(P)` on subject `E` means: `P` structurally matches at least one
-subtree of `E`, at any depth, regardless of assertion.
+This is only content projection: evidence, confidence and source attribution
+are intentionally lost on erasure. It is not an epistemic equivalence.
+No automatic annotation relocation across edits is performed.
 
-So for
+`Alternatives(options)` is a distinct, unresolved envelope of at least two
+candidate Documents. Its options are NOT roots of one Document and are NOT
+logical disjuncts. `choose(i)` explicitly selects an option by index. No
+metadata-erasure operation chooses a candidate. Local holes, packed choices,
+correlation variables and ambiguity surface syntax are deferred.
 
-```
-think(Bob, mistakenly(use(Alice, yesterday(SalesData))))
-```
+## 8. Explicit templates and profiles
 
-- `occurs(use(Alice, ?x))` binds `?x = yesterday(SalesData)`
-- `asserted(use(Alice, ?x))` fails
-- `asserted(think(Bob, ?content))` succeeds
+The optional API-only template layer accepts named
+`Definition(parameters, body_pattern)` values. Parameters are unique
+capture names, excluding `_`; every body capture must be declared. Definition
+bodies may reference other declared names only in an acyclic dependency graph.
+Names denote macros of one specified arity. Definitions emit no roots.
 
-## Matching
+`expand(D, definitions)` first expands arguments, substitutes them into a
+matching definition body, and expands that body. Unknown names stay ordinary.
+Parameter substitution does not replace bare symbols of the same spelling.
+Nullary definitions are aliases for terms, NOT event references. Expansion
+can duplicate occurrences and MUST NOT promise shared event identity.
 
-A pattern is itself a SCIR expression. Pattern variables are `?name`.
+The optional `boolean_normalize` profile interprets only `not` (arity 1),
+`and`/`or` (arity >=2), and `if` (arity 2), in regions reached solely through
+those heads. It validates arity, removes double negation and flattens same-head
+`and`/`or` without reordering. It stops at EVERY other head. This is an opt-in
+derived view, not core normalization or a translation of general English
+conditionals. No symbol names are reserved by Core.
 
-Matching is one-way structural unification of a pattern against a subject:
+## 9. Implementation limits and errors
 
-- an atom matches only an atom of the same name
-- a call matches a call of the same head and the same argument count;
-  arguments match pairwise
-- a variable `?x` binds to the subject node; a repeated `?x` must bind
-  to structurally equal nodes
+The mathematical model contains all finite trees. The small reference parser
+supports at most 2,000,000 source characters, 100,000 nodes (across the whole
+document) and depth 128 (root depth zero). Node/depth limits may be lowered;
+node limits may be raised explicitly. Depth cannot be raised above 128.
+`ParseError` contains an index plus one-based line and column.
 
-Bindings map the variable *name* (without `?`) to the bound expression.
+The reference encoder rejects forests exceeding 100,000 occurrences or depth
+128; the decoder defaults to those bounds. Templates allow at most 128
+definitions and default to 100,000 traversal/expansion steps with a depth
+guard. These limits prevent uncontrolled expansion; they are NOT a sandbox.
 
-Top-level matching unifies the pattern with the subject root only.
-Recursive matching tries the pattern at every subtree (`occurs`).
+Normal Python construction can create deeper trees. Recursive value equality,
+printing and substitution are not promised stack-safe outside the supported
+bounds. Constructor validation assumes normal frozen-dataclass use, not
+hostile mutation through Python reflection.
 
-`same(?x, ?x)` matches `same(Alice, Alice)` and does not match
-`same(Alice, Bob)`.
+## 10. Compatibility
 
-A failed structural match yields no bindings.
-
-## Normalization
-
-Normalization is conservative and applies only the reserved kernel,
-bottom-up, preserving argument order:
-
-```
-not(not(X))          →  X
-and(A, and(B, C))    →  and(A, B, C)
-or(A, or(B, C))      →  or(A, B, C)
-```
-
-Nested `and` (resp. `or`) is flattened in every argument position:
-
-```
-and(and(A, B), C)    →  and(A, B, C)
-and(A, and(B, C), D) →  and(A, B, C, D)
-```
-
-No other rewrites are performed. Ordinary heads are left intact.
-Normalization does not invent equivalences between informal symbols.
-
-## Out of scope for v0
-
-Types, sorts, ontologies, modules, quantification, numeric or string
-literals, evaluation, planning, embeddings, persistence, and LLM/API
-clients. The deterministic library is independently usable.
+0.2 removes Atom, Call, content Variable, `asserted`, `occurs`, implicit
+normalization and the old query result shape. Use `Term`, `parse_pattern`,
+`parse_document`, explicit query scope and Hit paths. The tests specifying
+0.1 distinctions are intentionally replaced, not silently reinterpreted.
+There is no semantic synonym mapping and no proof that a parsed document is
+an accurate representation of its natural-language source.
