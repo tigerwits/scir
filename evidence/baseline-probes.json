@@ -1,0 +1,22 @@
+{
+  "baseline_commit": "295da13366921358f7f76f7b9c45d06c06d63136",
+  "two_roots": "ParseError: unexpected trailing input at index 26",
+  "string": "ParseError: expected expression at index 5",
+  "deep": "RecursionError: maximum recursion depth exceeded",
+  "opaque_rewrite": {
+    "before": "think(Bob, not(not(P)))",
+    "after": "think(Bob, P)"
+  },
+  "asserted_conjunct": [
+    {}
+  ],
+  "occurrence_results": [
+    {},
+    {}
+  ],
+  "malformed_runtime_field": "TypeError",
+  "hashes": {
+    "1": "-5371958592986153208",
+    "2": "-6569810976112054428"
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "method": "Single-assistant authored examples and backtranslations; no independent model evaluation.",
+  "fixtures": 17,
+  "candidate_documents": 19,
+  "scir_shorter_in_first_candidate": 10,
+  "rows": [
+    {
+      "id": "coreference",
+      "candidates": 1,
+      "english_characters": 49,
+      "scir_characters": 61,
+      "first_candidate_roots": 2,
+      "first_candidate_max_depth": 2,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "nested_belief",
+      "candidates": 1,
+      "english_characters": 41,
+      "scir_characters": 40,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "negation_outside",
+      "candidates": 1,
+      "english_characters": 34,
+      "scir_characters": 29,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "negation_inside",
+      "candidates": 1,
+      "english_characters": 30,
+      "scir_characters": 29,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 3,
+      "root_matches": 1,
+      "all_matches": 1
+    },
+    {
+      "id": "ambiguous_pronoun",
+      "candidates": 2,
+      "english_characters": 36,
+      "scir_characters": 46,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "conditional",
+      "candidates": 1,
+      "english_characters": 65,
+      "scir_characters": 64,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "false_belief",
+      "candidates": 1,
+      "english_characters": 59,
+      "scir_characters": 48,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "correction",
+      "candidates": 1,
+      "english_characters": 83,
+      "scir_characters": 82,
+      "first_candidate_roots": 2,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 3
+    },
+    {
+      "id": "modality",
+      "candidates": 1,
+      "english_characters": 41,
+      "scir_characters": 34,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "requirement",
+      "candidates": 1,
+      "english_characters": 91,
+      "scir_characters": 82,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 4,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "quote",
+      "candidates": 1,
+      "english_characters": 33,
+      "scir_characters": 52,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 4,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "event_reference",
+      "candidates": 1,
+      "english_characters": 51,
+      "scir_characters": 61,
+      "first_candidate_roots": 2,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "active",
+      "candidates": 1,
+      "english_characters": 29,
+      "scir_characters": 31,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 2,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "passive",
+      "candidates": 1,
+      "english_characters": 39,
+      "scir_characters": 31,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 2,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "sent",
+      "candidates": 1,
+      "english_characters": 26,
+      "scir_characters": 30,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 2,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "received",
+      "candidates": 1,
+      "english_characters": 35,
+      "scir_characters": 33,
+      "first_candidate_roots": 1,
+      "first_candidate_max_depth": 2,
+      "root_matches": 0,
+      "all_matches": 1
+    },
+    {
+      "id": "correlated_ambiguity",
+      "candidates": 2,
+      "english_characters": 44,
+      "scir_characters": 61,
+      "first_candidate_roots": 2,
+      "first_candidate_max_depth": 3,
+      "root_matches": 0,
+      "all_matches": 1
+    }
+  ],
+  "status": "structural checks passed"
+}

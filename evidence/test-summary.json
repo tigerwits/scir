@@ -1,0 +1,29 @@
+{
+  "baseline_commit": "295da13366921358f7f76f7b9c45d06c06d63136",
+  "baseline_tests": 34,
+  "revision_tests": 83,
+  "returncode": 0,
+  "command": "PYTHONPATH=src python -m unittest discover -s tests -v",
+  "python": "3.13.5",
+  "generated_documents": 1000,
+  "generated_occurrences": 8829,
+  "malformed_fuzz_inputs": 2000,
+  "boolean_formula_samples": 200,
+  "runtime_lines": 678,
+  "lean_checked": false,
+  "independent_model_comparison": false,
+  "install_command": "PIP_NO_INDEX=1 python -m pip install --no-deps --no-build-isolation -e .",
+  "install_success": true,
+  "source_sha256": {
+    "src/scir/__init__.py": "01c5bcb3f59a14ed1dae8e69f85f62d65968bb0f450160daaec6d4806626cf1a",
+    "src/scir/__main__.py": "a34db1097021d90f2571d7f3c34b8eb2a5b5f84e9f907d53b160baaca599fbbb",
+    "src/scir/annotations.py": "9091f3fb8e254f1136b8ea05de90ec1c39e6a7c20bd1da54055b262f9ef94732",
+    "src/scir/core.py": "25a4ee05d30e1e0379ff444095cabbf4653a11a565c33b4fdc0f58a9c9021469",
+    "src/scir/patterns.py": "9f4976b12f976b06608bf19031c0dff97050e35eafc49557661ba29c41c6bce6",
+    "src/scir/profiles.py": "6b08263803994fac8cd16e5f0ecab2941a2a36167a546afbc5391486a924e4ac",
+    "src/scir/relations.py": "a1c52f1c28331e96ae629649929ba6081d042721659f92567952330821976227",
+    "src/scir/syntax.py": "4e20f8650f1028c7fb3ddb22d84992553b0d97cb639bf04137b1dbc22807e4ad",
+    "src/scir/templates.py": "5f9912a3f54a7c1b3d8911587ed70e7e43ec31b5546fb1b9fb671851efe230c7",
+    "src/scir/tree.py": "3ad84e8053f33df442d2ff34d8e02c7ea784ba4d134ca006fb3dc49fc8692b60"
+  }
+}

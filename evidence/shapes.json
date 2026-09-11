@@ -1,0 +1,54 @@
+{
+  "python": "3.13.5",
+  "measurements": [
+    {
+      "shape": "chain",
+      "size": 8,
+      "nodes": 9,
+      "parse_ms": 0.059,
+      "format_ms": 0.036,
+      "encode_ms": 0.044
+    },
+    {
+      "shape": "chain",
+      "size": 32,
+      "nodes": 33,
+      "parse_ms": 0.111,
+      "format_ms": 0.051,
+      "encode_ms": 0.08
+    },
+    {
+      "shape": "chain",
+      "size": 128,
+      "nodes": 129,
+      "parse_ms": 0.347,
+      "format_ms": 0.166,
+      "encode_ms": 0.233
+    },
+    {
+      "shape": "wide",
+      "size": 100,
+      "nodes": 101,
+      "parse_ms": 0.22,
+      "format_ms": 0.049,
+      "encode_ms": 0.133
+    },
+    {
+      "shape": "wide",
+      "size": 1000,
+      "nodes": 1001,
+      "parse_ms": 1.652,
+      "format_ms": 0.201,
+      "encode_ms": 0.932
+    },
+    {
+      "shape": "wide",
+      "size": 10000,
+      "nodes": 10001,
+      "parse_ms": 15.644,
+      "format_ms": 1.729,
+      "encode_ms": 9.467
+    }
+  ],
+  "scope": "Accepted reference limits only; medians of three runs after warmup."
+}
