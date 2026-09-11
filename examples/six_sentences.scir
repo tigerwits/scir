@@ -1,0 +1,6 @@
+at(leave(Alice, Office), six)
+before(email(Alice, Bob, latest(Report)), leave(Alice, Office))
+and(at(read(Bob, Report), Train), notice(Bob, wrong(chartOf(Report))))
+think(Bob, mistakenly(use(Alice, yesterday(SalesData))))
+and(call(Bob, Carol), not(answer(Carol)))
+if(tomorrow(confirm(Carol, Numbers)), send(Bob, corrected(Report), Client))

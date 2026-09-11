@@ -1,0 +1,16 @@
+{
+  "seed": 602,
+  "documents": 1000,
+  "occurrences": 8829,
+  "checks": [
+    "content parse/print",
+    "pattern parse/print",
+    "match/instantiate soundness on generated patterns",
+    "relation encode/decode",
+    "relational row-order invariance",
+    "identity edit",
+    "annotation erasure"
+  ],
+  "status": "passed",
+  "scope": "finite seeded tests, not universal proofs"
+}

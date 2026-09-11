@@ -4,10 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scir"
-version = "0.1.0"
-description = "Symbolic Content IR: a tiny expression language for exchanging content between LLM agents."
+version = "0.2.0"
+description = "Symbolic Content IR: ground ordered trees with deterministic tooling."
 readme = "README.md"
 requires-python = ">=3.10"
+
+[project.scripts]
+scir = "scir.__main__:main"
 
 [tool.setuptools.package-dir]
 "" = "src"

@@ -1,34 +1,12 @@
-"""SCIR: Symbolic Content IR."""
+"""SCIR 0.2: one content constructor, ordered roots, separate patterns."""
+from .core import Document, Path, Term, digest, format_document, validate
+from .syntax import ParseError, parse, parse_document, parse_pattern
+from .patterns import Node, Pattern, Var, instantiate, match
+from .tree import Difference, Hit, at, diff, query, replace_at, walk
 
-from .ast import Atom, Call, Expr, Variable, equal
-from .match import asserted, asserted_nodes, match, occurs, query
-from .normalize import normalize
-from .parser import ParseError, parse
-from .tree import filter_subtrees, find_symbol, replace, walk
-from .validate import RESERVED_ARITY, ValidationError, validate
-
-__version__ = "0.1.0"
-
+__version__ = "0.2.0"
 __all__ = [
-    "Atom",
-    "Call",
-    "Expr",
-    "ParseError",
-    "RESERVED_ARITY",
-    "ValidationError",
-    "Variable",
-    "asserted",
-    "asserted_nodes",
-    "equal",
-    "filter_subtrees",
-    "find_symbol",
-    "match",
-    "normalize",
-    "occurs",
-    "parse",
-    "query",
-    "replace",
-    "validate",
-    "walk",
-    "__version__",
+    "Document", "Path", "Term", "digest", "format_document", "validate",
+    "ParseError", "parse", "parse_document", "parse_pattern", "Node", "Pattern",
+    "Var", "instantiate", "match", "Difference", "Hit", "at", "diff", "query", "replace_at", "walk",
 ]

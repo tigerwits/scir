@@ -1,0 +1,40 @@
+{
+  "python": "3.13.5",
+  "implementation": "CPython",
+  "platform": "Linux x86_64",
+  "repeats": 3,
+  "summary": "median after one warmup",
+  "measurements": [
+    {
+      "roots": 100,
+      "nodes": 700,
+      "source_characters": 5700,
+      "parse_ms": 1.57,
+      "format_ms": 0.39,
+      "query_all_ms": 0.784,
+      "encode_ms": 0.744,
+      "decode_ms": 1.712
+    },
+    {
+      "roots": 1000,
+      "nodes": 7000,
+      "source_characters": 57000,
+      "parse_ms": 15.322,
+      "format_ms": 2.53,
+      "query_all_ms": 6.654,
+      "encode_ms": 7.285,
+      "decode_ms": 16.66
+    },
+    {
+      "roots": 5000,
+      "nodes": 35000,
+      "source_characters": 285000,
+      "parse_ms": 82.318,
+      "format_ms": 13.805,
+      "query_all_ms": 33.845,
+      "encode_ms": 48.233,
+      "decode_ms": 94.996
+    }
+  ],
+  "limitations": "One shared runtime; no performance regression threshold or cross-model inference comparison."
+}

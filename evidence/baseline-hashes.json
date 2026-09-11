@@ -1,0 +1,57 @@
+[
+  {
+    "path": "src/scir/ast.py",
+    "git_blob_sha": "183be36fe99028c9b5e41a1aeb8f4ad7cd0d18b5",
+    "matches_remote": true
+  },
+  {
+    "path": "src/scir/parser.py",
+    "git_blob_sha": "cf7668a4dd8993b8c83f4ea4234199b9d79bec98",
+    "matches_remote": true
+  },
+  {
+    "path": "src/scir/match.py",
+    "git_blob_sha": "ad226ef7051844ae852e5c7556a15c70ec4ebeea",
+    "matches_remote": true
+  },
+  {
+    "path": "src/scir/normalize.py",
+    "git_blob_sha": "482187b7d1a1146eebd9c2fef4de8625a2affef4",
+    "matches_remote": true
+  },
+  {
+    "path": "src/scir/validate.py",
+    "git_blob_sha": "320ca9d91c00fb7becb2527ff399739ac1f6716e",
+    "matches_remote": true
+  },
+  {
+    "path": "src/scir/tree.py",
+    "git_blob_sha": "e0796e572d88510e3d6c991a95125c7217eec72f",
+    "matches_remote": true
+  },
+  {
+    "path": "src/scir/__init__.py",
+    "git_blob_sha": "4c6d48e114b154d7634f60bdf2213d0be3b1ec4a",
+    "matches_remote": true
+  },
+  {
+    "path": "tests/test_normalize.py",
+    "git_blob_sha": "d5af029242df5e9cdd5a2d53327cfc0a7c6b175e",
+    "matches_remote": true
+  },
+  {
+    "path": "tests/test_validate.py",
+    "git_blob_sha": "c4f0d561155b3a6ddb18764e5ff24c120cbe4344",
+    "matches_remote": true
+  },
+  {
+    "path": "tests/test_parse.py",
+    "git_blob_sha": "45a44d99d400ecd362447efc40d2d70948174cac",
+    "matches_remote": true
+  },
+  {
+    "path": "tests/test_match.py",
+    "git_blob_sha": "6067a887d1959adfdbb3a4af8066b8bc1c518908",
+    "matches_remote": true
+  }
+]
