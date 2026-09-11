@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from .core import IDENT, Term, check_symbol
+from .core import IDENT, Term, check_symbol, format_symbol
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,7 +23,7 @@ class Node:
     args: tuple[Pattern, ...] = ()
 
     def __str__(self) -> str:
-        head = str(Term(self.symbol))
+        head = format_symbol(self.symbol)
         return head if not self.args else head + "(" + ", ".join(map(str, self.args)) + ")"
 
     def __post_init__(self) -> None:
@@ -52,7 +52,7 @@ def match(pattern: Pattern, subject: Term) -> Bindings | None:
         else:
             if p.symbol != t.symbol or len(p.args) != len(t.args):
                 return None
-            pending.extend(reversed(list(zip(p.args, t.args))))
+            pending.extend(zip(reversed(p.args), reversed(t.args)))
     return bindings
 
 

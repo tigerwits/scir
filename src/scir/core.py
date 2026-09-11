@@ -18,6 +18,10 @@ def check_symbol(symbol: str) -> None:
         raise ValueError("symbols must contain Unicode scalar values") from e
 
 
+def format_symbol(symbol: str) -> str:
+    return symbol if IDENT.fullmatch(symbol) else json.dumps(symbol, ensure_ascii=False)
+
+
 @dataclass(frozen=True, slots=True)
 class Term:
     symbol: str
@@ -29,7 +33,7 @@ class Term:
             raise ValueError("arguments must be a tuple of ground Terms")
 
     def __str__(self) -> str:
-        head = self.symbol if IDENT.fullmatch(self.symbol) else json.dumps(self.symbol, ensure_ascii=False)
+        head = format_symbol(self.symbol)
         return head if not self.args else head + "(" + ", ".join(map(str, self.args)) + ")"
 
 

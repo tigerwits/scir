@@ -1,18 +1,20 @@
 """Occurrence paths, explicit roots, and caller-selected structural edits."""
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
+from itertools import zip_longest
 from .core import Document, Path, Term, validate
 from .patterns import Bindings, Node, Pattern, Var, match
 
 
-def walk(document: Document):
+def walk(document: Document) -> Iterator[tuple[Path, Term]]:
     validate(document)
-    pending = [((i,), t) for i, t in reversed(list(enumerate(document)))]
+    pending = [((i,), document[i]) for i in reversed(range(len(document)))]
     while pending:
         path, term = pending.pop()
         yield path, term
-        pending.extend((path + (i,), a) for i, a in reversed(list(enumerate(term.args))))
+        pending.extend((path + (i,), term.args[i]) for i in reversed(range(len(term.args))))
 
 
 def at(document: Document, path: Path) -> Term:
@@ -36,7 +38,7 @@ class Hit:
     bindings: Bindings
 
 
-def query(document: Document, pattern: Pattern, *, scope="roots") -> list[Hit]:
+def query(document: Document, pattern: Pattern, *, scope: str = "roots") -> list[Hit]:
     """Roots by default. 'all' searches occurrences without asserting them."""
     validate(document)
     if type(pattern) not in (Node, Var):
@@ -77,16 +79,16 @@ class Difference:
 
 def diff(before: Document, after: Document) -> list[Difference]:
     """Positional changed frontier, not semantic or minimum-edit alignment."""
-    from itertools import zip_longest
-    validate(before); validate(after)
+    validate(before)
+    validate(after)
     pending = [((i,), a, b) for i, (a, b) in reversed(list(enumerate(zip_longest(before, after))))]
     changes = []
     while pending:
         path, a, b = pending.pop()
-        if a == b:
+        if a is b:
             continue
         if a is not None and b is not None and a.symbol == b.symbol and len(a.args) == len(b.args):
-            pending.extend((path + (i,), x, y) for i, (x, y) in reversed(list(enumerate(zip(a.args, b.args)))))
+            pending.extend((path + (i,), a.args[i], b.args[i]) for i in reversed(range(len(a.args))))
         else:
             changes.append(Difference(path, a, b))
     return changes
