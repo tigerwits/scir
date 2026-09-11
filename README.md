@@ -27,7 +27,9 @@ prose ── interpreted by an author/model ──> SCIR content
                   snapshot annotations / occurrence tables
 ```
 
-**Status:** proposed breaking revision 0.2 of the initial 0.1 prototype.
+**Status:** implementation 0.2.1, retaining the 0.2 content/wire format.
+See [HARDENING.md](HARDENING.md) for the implementation review, behavior
+changes, regression tests and measured allocation improvements.
 See [SPEC.md](SPEC.md), [THEORY.md](THEORY.md), and
 [EXPERIMENTS.md](EXPERIMENTS.md). No claim that this improves LLM reasoning has
 yet been established by an independent model experiment.
@@ -134,6 +136,7 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 python tools/check_properties.py
 python tools/study_corpus.py
 python tools/benchmark.py
+python tools/benchmark_hardening.py
 ```
 
 Recorded outputs are under `evidence/`. Seeded property checks and timing

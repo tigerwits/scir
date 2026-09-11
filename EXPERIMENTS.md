@@ -1,5 +1,9 @@
 # Experiments and limitations
 
+This is the historical 0.2 kernel-study record. The 0.2.1 implementation
+review and fresh measurements are in [HARDENING.md](HARDENING.md); its evidence
+is separate so these original measurements and source hashes remain auditable.
+
 ## What was actually executed
 
 The original seven runtime modules and four test files were copied from the

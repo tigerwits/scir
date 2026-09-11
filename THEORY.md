@@ -231,7 +231,11 @@ cycles in the definition dependency graph. A topological rank exists; each
 body mentions only lower-ranked macros, while substituted actual arguments
 are already macro-free. Structural descent plus decreasing macro rank gives
 termination for finite inputs. Acyclic expansion can still grow exponentially
-by duplication, so a work budget and depth guard are enforced.
+by duplication, so a work budget and depth guard are enforced. In 0.2.1 the
+same budget also counts dependency validation, and expansion interprets the
+pattern body directly under an environment. This avoids unbudgeted recursive
+instantiation before the guarded visitor can inspect the result. Known macro
+arities are checked in every body, including unused definitions.
 
 Determinism is a specified traversal and substitution order, not a claim that
 an arbitrary user rewrite system is confluent. There are no overlapping
@@ -270,8 +274,13 @@ O(P), not unconditionally O(n); P <= n(h+1). The reference depth cap is 128.
 
 Canonical recursive string construction can copy subtree strings, giving an
 O(Lh) upper bound rather than an unconditional linear guarantee. Record
-decoding additionally sorts positional keys: its ordering work is bounded
-by O(n log n), plus reconstruction. A query scans occurrences and repeats
+decoding reconstructs contiguous child positions by direct range lookup, not
+sorting; ordering is O(n) under ordinary constant-time dictionary assumptions.
+Encoding retains only the ancestor ID chain instead of a map of all paths;
+output tables and the existing path-aware walk still have their own costs.
+Lexing retains one lookahead token, not a token array for the whole source.
+Positional diff tests local label/arity compatibility rather than recursively
+comparing whole subtrees again at every frontier node. A query scans occurrences and repeats
 structural matching; total work includes repeated captured-subtree equality
 checks. There is no index yet and no universal linear-query claim.
 

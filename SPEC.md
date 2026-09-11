@@ -1,6 +1,7 @@
 # SCIR 0.2 specification
 
-This document specifies the proposed breaking 0.2 reference format and API.
+This document specifies the 0.2 reference format and API. Implementation
+0.2.1 preserves the format and tightens the boundary checks documented below.
 Normative requirements concern symbolic structure, not real-world truth.
 
 ## 1. Content
@@ -165,7 +166,10 @@ not equal the original arbitrary row serialization.
 `Annotation(snapshot, path, key, value_json)` is outside content. The snapshot
 is `digest(D)`. `annotate` validates a path and copies JSON metadata into a
 canonical immutable string: sorted keys, no extra whitespace, finite JSON
-numbers, Unicode scalar strings. `Bundle(D, annotations)` validates each
+numbers, Unicode scalar strings. Annotation keys are nonempty Unicode-scalar
+strings. Metadata dictionaries MUST have string keys: integer/Boolean keys
+are rejected, never coerced. Lists and tuples encode as JSON arrays; other
+non-JSON Python objects are rejected with ValueError. `Bundle(D, annotations)` validates each
 target against D and rejects stale fingerprints and invalid paths.
 
     erase(Bundle(D, M)) = D
@@ -186,10 +190,12 @@ The optional API-only template layer accepts named
 `Definition(parameters, body_pattern)` values. Parameters are unique
 capture names, excluding `_`; every body capture must be declared. Definition
 bodies may reference other declared names only in an acyclic dependency graph.
-Names denote macros of one specified arity. Definitions emit no roots.
+Names denote macros of one specified arity. Known macro calls in ALL bodies
+are arity-checked, including unused definitions. Definitions emit no roots.
 
 `expand(D, definitions)` first expands arguments, substitutes them into a
-matching definition body, and expands that body. Unknown names stay ordinary.
+matching definition body, and expands that body. The visitor performs these
+operations together rather than allocating an unbounded intermediate term. Unknown names stay ordinary.
 Parameter substitution does not replace bare symbols of the same spelling.
 Nullary definitions are aliases for terms, NOT event references. Expansion
 can duplicate occurrences and MUST NOT promise shared event identity.
@@ -211,8 +217,31 @@ node limits may be raised explicitly. Depth cannot be raised above 128.
 
 The reference encoder rejects forests exceeding 100,000 occurrences or depth
 128; the decoder defaults to those bounds. Templates allow at most 128
-definitions and default to 100,000 traversal/expansion steps with a depth
-guard. These limits prevent uncontrolled expansion; they are NOT a sandbox.
+definitions and default to 100,000 steps with a depth guard of 128. A step is
+a definition-body occurrence inspected during dependency checking, or one
+expansion-visitor call. Substituted arguments count again at every occurrence.
+One shared budget covers preflight and expansion; unused bodies also count.
+Depth includes macro expansion frames. These checks precede substitution
+allocation; a previously sufficient custom budget may need increasing.
+
+Lexing is lazy with one-token lookahead. Successful parsing still consumes the
+complete source; failures need not scan the rest of the file. When an input has
+several errors, the first reported diagnostic may therefore differ from 0.2.0.
+
+Metadata is limited to 100,000 value occurrences (including dictionary keys),
+depth 128, and 2,000,000 canonical JSON characters. Empty containers count as
+values, root depth is zero, and tuple arrays retain the existing conversion.
+Cyclic containers, invalid Unicode, unsupported objects, and excess sizes
+raise ValueError. Raw Annotation payloads are also size/depth checked by Bundle.
+`erase` accepts a Bundle only, never an unresolved Alternatives envelope.
+
+The CLI reads at most 16,000,001 characters, rejecting input beyond 16,000,000
+before JSON parsing. The smaller SCIR source cap still applies to content.
+Duplicate JSON object keys are rejected on relational decode instead of
+silently keeping the final value. A decoder rejects a second incoming edge
+as soon as seen rather than accumulating an arbitrarily large invalid table.
+These are bounded reference interfaces, NOT a Python sandbox or universal
+resource guarantee for all programmatically constructed objects.
 
 Normal Python construction can create deeper trees. Recursive value equality,
 printing and substitution are not promised stack-safe outside the supported

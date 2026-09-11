@@ -31,32 +31,39 @@ class _Parser:
             raise ValueError("max_nodes must be a positive integer")
         self.source, self.pattern = source, pattern
         self.max_depth, self.remaining = max_depth, max_nodes
-        self.tokens, self.i = [], 0
         if len(source) > 2_000_000:
             raise ParseError(source, 0, "source exceeds 2,000,000 characters")
+        self.tokens = self.lex()
+        self.current = next(self.tokens)
+
+    def lex(self):
         pos = 0
-        while pos < len(source):
-            m = TOKEN.match(source, pos)
+        while pos < len(self.source):
+            m = TOKEN.match(self.source, pos)
             if m is None:
-                raise ParseError(source, pos, "unexpected character")
+                raise ParseError(self.source, pos, "unexpected character")
             if m.lastgroup not in ("space", "comment"):
-                self.tokens.append((m.lastgroup, m.group(), pos))
+                yield m.lastgroup, m.group(), pos
             pos = m.end()
-        self.tokens.append(("eof", "", len(source)))
+        yield "eof", "", len(self.source)
+
+    def advance(self):
+        token = self.current
+        self.current = next(self.tokens, self.current)
+        return token
 
     def error(self, message: str):
-        raise ParseError(self.source, self.tokens[self.i][2], message)
+        raise ParseError(self.source, self.current[2], message)
 
-    def newlines(self):
-        while self.tokens[self.i][0] == "newline":
-            self.i += 1
+    def newlines(self) -> None:
+        while self.current[0] == "newline":
+            self.advance()
 
-    def expr(self, depth=0) -> Term | Pattern:
+    def expr(self, depth: int = 0) -> Term | Pattern:
         if depth > self.max_depth or self.remaining <= 0:
             self.error("expression resource limit exceeded")
         self.remaining -= 1
-        kind, value, pos = self.tokens[self.i]
-        self.i += 1
+        kind, value, pos = self.advance()
         if kind == "var":
             if not self.pattern:
                 raise ParseError(self.source, pos, "metavariables belong in patterns, not content")
@@ -70,22 +77,22 @@ class _Parser:
                 raise ParseError(self.source, pos, "invalid JSON-quoted symbol") from e
         args = []
         # A newline between a head and '(' terminates a root; no guessing.
-        if self.tokens[self.i][1] == "(":
-            self.i += 1
+        if self.current[1] == "(":
+            self.advance()
             self.newlines()
-            if self.tokens[self.i][1] != ")":
+            if self.current[1] != ")":
                 while True:
                     args.append(self.expr(depth + 1))
                     self.newlines()
-                    if self.tokens[self.i][1] != ",":
+                    if self.current[1] != ",":
                         break
-                    self.i += 1
+                    self.advance()
                     self.newlines()
-                    if self.tokens[self.i][1] == ")":
+                    if self.current[1] == ")":
                         break
-            if self.tokens[self.i][1] != ")":
+            if self.current[1] != ")":
                 self.error("expected ',' or ')'")
-            self.i += 1
+            self.advance()
         try:
             return (Node if self.pattern else Term)(value, tuple(args))
         except ValueError as e:
@@ -94,18 +101,18 @@ class _Parser:
     def document(self) -> tuple:
         roots = []
         self.newlines()
-        while self.tokens[self.i][0] != "eof":
+        while self.current[0] != "eof":
             roots.append(self.expr())
-            if self.tokens[self.i][0] == "eof":
+            if self.current[0] == "eof":
                 break
-            if self.tokens[self.i][0] != "newline" and self.tokens[self.i][1] != ";":
+            if self.current[0] != "newline" and self.current[1] != ";":
                 self.error("expected newline or ';' between roots")
-            self.i += 1
+            self.advance()
             self.newlines()
         return tuple(roots)
 
 
-def parse_document(source: str, *, max_depth=128, max_nodes=100_000) -> Document:
+def parse_document(source: str, *, max_depth: int = 128, max_nodes: int = 100_000) -> Document:
     return _Parser(source, False, max_depth, max_nodes).document()
 
 
@@ -116,9 +123,9 @@ def _one(source: str, pattern: bool, max_depth: int, max_nodes: int):
     return roots[0]
 
 
-def parse(source: str, *, max_depth=128, max_nodes=100_000) -> Term:
+def parse(source: str, *, max_depth: int = 128, max_nodes: int = 100_000) -> Term:
     return _one(source, False, max_depth, max_nodes)
 
 
-def parse_pattern(source: str, *, max_depth=128, max_nodes=100_000) -> Pattern:
+def parse_pattern(source: str, *, max_depth: int = 128, max_nodes: int = 100_000) -> Pattern:
     return _one(source, True, max_depth, max_nodes)

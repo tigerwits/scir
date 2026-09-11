@@ -1,0 +1,182 @@
+{
+  "baseline_commit": "d77e0ae3be9e361924ce3668ceb39a8f8627c820",
+  "baseline_tree": "03ee3607a8d3745e7c5e596d7185cb51f6c6d2fe",
+  "supplied_archive_tree_matches_baseline": true,
+  "python": "3.13.5",
+  "platform": "Linux x86_64",
+  "version": "0.2.1",
+  "baseline_tests": 83,
+  "revision_tests": 108,
+  "test_command": "python -X dev -m unittest discover -s tests -v",
+  "test_returncode": 0,
+  "selected_baseline_regressions": {
+    "methods": 10,
+    "expected_result": "failed",
+    "failures_including_subtests": 9,
+    "errors_including_subtests": 7
+  },
+  "extended_properties": {
+    "seeds": [
+      602,
+      603,
+      604,
+      605,
+      606,
+      607,
+      608,
+      609,
+      610,
+      611,
+      612
+    ],
+    "documents": 11000,
+    "occurrences": 102046,
+    "status": "passed"
+  },
+  "differential": {
+    "seed": 6021,
+    "documents": 1000,
+    "syntax_samples": 5000,
+    "template_cases": 100,
+    "versions": [
+      "0.2.0",
+      "0.2.1"
+    ],
+    "status": "passed",
+    "scope": "Valid structure and syntax acceptance; new rejection policies are regression-tested separately."
+  },
+  "syntax_compatibility": "All runtime modules parsed with ast.parse(feature_version=(3,10)); only CPython 3.13.5 executed.",
+  "install_command": "PIP_NO_INDEX=1 python -m pip install --no-deps --no-build-isolation -e .",
+  "install_success": true,
+  "runtime_lines": 776,
+  "baseline_probes": {
+    "macro_depth_before_budget": {
+      "accepted": false,
+      "error": "RecursionError",
+      "message": "maximum recursion depth exceeded"
+    },
+    "metadata_integer_key_coerced": {
+      "accepted": true,
+      "value": "Annotation(snapshot='09dfc49896f1908e98fcc40bfef9c9a7054a550f1720972a5e8d41b145dc1b34', path=(0,), key='source', value_json='{\"1\":\"one\"}')"
+    },
+    "metadata_surrogate_key": {
+      "accepted": true,
+      "value": "Bundle(document=(Term(symbol='A', args=()),), annotations=(Annotation(snapshot='09dfc49896f1908e98fcc40bfef9c9a7054a550f1720972a5e8d41b145dc1b34', path=(0,), key='\\ud800', value_json='1'),))"
+    },
+    "metadata_unsupported_object": {
+      "accepted": false,
+      "error": "TypeError",
+      "message": "Object of type object is not JSON serializable"
+    },
+    "unused_macro_bad_arity": {
+      "accepted": true,
+      "value": "()"
+    }
+  },
+  "baseline_allocation_benchmark": {
+    "python": "3.13.5",
+    "scir_version": "0.2.0",
+    "measurements": {
+      "parse_35000_nodes": {
+        "median_ms": 80.849,
+        "peak_bytes": 13536512
+      },
+      "reject_after_one_node": {
+        "median_ms": 71.651,
+        "peak_bytes": 20019354
+      },
+      "encode_35000_nodes": {
+        "median_ms": 50.305,
+        "peak_bytes": 10538184
+      },
+      "diff_chain_depth_128": {
+        "median_ms": 1.166,
+        "peak_bytes": 10224
+      }
+    },
+    "method": "Three warm timing runs; separate tracemalloc peak run; inputs preallocated.",
+    "limitations": "Shared runtime; allocator peaks are not process RSS or universal guarantees."
+  },
+  "revision_allocation_benchmark": {
+    "python": "3.13.5",
+    "scir_version": "0.2.1",
+    "measurements": {
+      "parse_35000_nodes": {
+        "median_ms": 80.507,
+        "peak_bytes": 4458248
+      },
+      "reject_after_one_node": {
+        "median_ms": 0.062,
+        "peak_bytes": 2922
+      },
+      "encode_35000_nodes": {
+        "median_ms": 29.099,
+        "peak_bytes": 7214284
+      },
+      "diff_chain_depth_128": {
+        "median_ms": 0.142,
+        "peak_bytes": 5696
+      }
+    },
+    "method": "Three warm timing runs; separate tracemalloc peak run; inputs preallocated.",
+    "limitations": "Shared runtime; allocator peaks are not process RSS or universal guarantees."
+  },
+  "revision_general_benchmark": {
+    "python": "3.13.5",
+    "implementation": "CPython",
+    "platform": "Linux x86_64",
+    "repeats": 3,
+    "summary": "median after one warmup",
+    "measurements": [
+      {
+        "roots": 100,
+        "nodes": 700,
+        "source_characters": 5700,
+        "parse_ms": 1.683,
+        "format_ms": 0.294,
+        "query_all_ms": 0.574,
+        "encode_ms": 0.566,
+        "decode_ms": 1.509
+      },
+      {
+        "roots": 1000,
+        "nodes": 7000,
+        "source_characters": 57000,
+        "parse_ms": 15.118,
+        "format_ms": 2.822,
+        "query_all_ms": 5.27,
+        "encode_ms": 5.567,
+        "decode_ms": 15.039
+      },
+      {
+        "roots": 5000,
+        "nodes": 35000,
+        "source_characters": 285000,
+        "parse_ms": 81.466,
+        "format_ms": 13.175,
+        "query_all_ms": 27.59,
+        "encode_ms": 28.548,
+        "decode_ms": 97.293
+      }
+    ],
+    "limitations": "One shared runtime; no performance regression threshold or cross-model inference comparison."
+  },
+  "source_sha256": {
+    "src/scir/__init__.py": "b32437ad961aeaaf43ff2b692dfe1bd555e691b8ed23b29ee2156bc71a1ff3a9",
+    "src/scir/__main__.py": "b3f60a5f402b49a51942d1c3c037911f945e478b81be2bd9515eb7729dec34b8",
+    "src/scir/annotations.py": "81789c8848f2f1ec3f8080daf87826017946d5c30c208073af16e6b941029bc1",
+    "src/scir/core.py": "9ab7a9a3a3913c7c28c669108aaa1ba0fc3ae269ba9703e205e6d46cfa97ad75",
+    "src/scir/patterns.py": "3ed0778af72fdefb5f198b69072cab32d8562bf1d87203841cf890dd920f15b6",
+    "src/scir/profiles.py": "6b08263803994fac8cd16e5f0ecab2941a2a36167a546afbc5391486a924e4ac",
+    "src/scir/relations.py": "71d53aafff0cb0f66dab331f919f02cb6bc5d89ced94b160137afc74512b4d88",
+    "src/scir/syntax.py": "52ef2486991a4ee38f4fa4d871420d4b30e85033f28ba312fa40d7a108d6f0d8",
+    "src/scir/templates.py": "bec85304a03a84a9ce4818d4209223713d66a0f7428d2da460d6df53e1b8891e",
+    "src/scir/tree.py": "1c75ad88671525d6c089126cb3581dbd9592d51e712cbbc5f04bfa8489dd9270",
+    "tests/test_hardening.py": "14dd0173bfb23bb76379adf35bcea01d6316302d338c2fc7df8e7bf691cda9fc",
+    "tools/benchmark_hardening.py": "07e4cb2a42c5e6f26d7fd80441c0ba02b328220fb955ed93c64834d654679987",
+    "tools/check_compatibility.py": "90a3a5e563c126447df50f430685fc577981f59c0c13160cbbd0318b5c70fd35"
+  },
+  "lean_checked": false,
+  "independent_model_comparison": false,
+  "github_actions_run": false
+}

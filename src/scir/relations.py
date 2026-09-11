@@ -8,21 +8,23 @@ VERSION = "scir-relations/0.2"
 
 
 def encode(document: Document) -> dict:
-    nodes, args, roots, ids = [], [], [], {}
+    nodes, args, roots, parents = [], [], [], []
     for path, term in walk(document):
         ident = len(nodes)
         if ident >= 100_000 or len(path) > 129:
             raise ValueError("forest exceeds reference codec resource limits")
-        ids[path] = ident
+        # Preorder leaves only the current ancestor chain live.
+        del parents[len(path) - 1:]
         nodes.append([ident, term.symbol])
         if len(path) == 1:
             roots.append([path[0], ident])
         else:
-            args.append([ids[path[:-1]], path[-1], ident])
+            args.append([parents[-1], path[-1], ident])
+        parents.append(ident)
     return {"version": VERSION, "nodes": nodes, "args": args, "roots": roots}
 
 
-def _nat(value):
+def _nat(value) -> int:
     if type(value) is not int or value < 0:
         raise ValueError("IDs and positions must be nonnegative integers")
     return value
@@ -39,13 +41,13 @@ def _rows(data, key, width):
 
 
 def _ordered(positions):
-    keys = sorted(positions)
-    if keys != list(range(len(keys))):
-        raise ValueError("positions must be unique and contiguous from zero")
-    return [positions[i] for i in keys]
+    try:
+        return [positions[i] for i in range(len(positions))]
+    except KeyError as e:
+        raise ValueError("positions must be unique and contiguous from zero") from e
 
 
-def decode(data: dict, *, max_nodes=100_000, max_depth=128) -> Document:
+def decode(data: dict, *, max_nodes: int = 100_000, max_depth: int = 128) -> Document:
     """Reject malformed tables, cycles, sharing, orphan nodes and order gaps."""
     if type(data) is not dict or set(data) != {"version", "nodes", "args", "roots"}:
         raise ValueError("expected version, nodes, args and roots tables")
@@ -63,16 +65,21 @@ def decode(data: dict, *, max_nodes=100_000, max_depth=128) -> Document:
             raise ValueError("node limit exceeded")
         labels[ident], children[ident], incoming[ident] = label, {}, 0
     for parent, position, child in _rows(data, "args", 3):
-        _nat(parent); _nat(position); _nat(child)
+        _nat(parent)
+        _nat(position)
+        _nat(child)
         if parent not in labels or child not in labels:
             raise ValueError("dangling argument edge")
         if position in children[parent]:
             raise ValueError("duplicate argument position")
+        if incoming[child]:
+            raise ValueError("a forest occurrence cannot have multiple parents")
         children[parent][position] = child
-        incoming[child] += 1
+        incoming[child] = 1
     positions, root_ids = {}, set()
     for position, ident in _rows(data, "roots", 2):
-        _nat(position); _nat(ident)
+        _nat(position)
+        _nat(ident)
         if ident not in labels or position in positions or ident in root_ids:
             raise ValueError("invalid or duplicate root")
         positions[position] = ident

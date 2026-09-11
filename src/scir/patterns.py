@@ -73,9 +73,13 @@ def instantiate(pattern: Pattern, bindings: Bindings) -> Term:
 def variables(pattern: Pattern) -> set[str]:
     if type(pattern) not in (Node, Var):
         raise ValueError("expected a pattern")
-    pending, found = [pattern], set()
+    pending, found, seen = [pattern], set(), set()
     while pending:
         p = pending.pop()
+        # This is a set-valued query: sharing need not repeat the same work.
+        if id(p) in seen:
+            continue
+        seen.add(id(p))
         if isinstance(p, Var):
             found.add(p.name)
         else:

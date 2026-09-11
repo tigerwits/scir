@@ -1,11 +1,27 @@
 """Read-only CLI; outputs transformed data to stdout, never executes symbols."""
 import argparse
 import json
-from pathlib import Path
 import sys
 
 from . import digest, format_document, parse_document, parse_pattern, query
 from .relations import decode, encode
+from .tree import walk
+
+MAX_INPUT_CHARS = 16_000_000
+
+
+def _read(stream) -> str:
+    text = stream.read(MAX_INPUT_CHARS + 1)
+    if len(text) > MAX_INPUT_CHARS:
+        raise ValueError(f"input exceeds {MAX_INPUT_CHARS:,} characters")
+    return text
+
+
+def _object(pairs) -> dict:
+    result = dict(pairs)
+    if len(result) != len(pairs):
+        raise ValueError("duplicate JSON object key")
+    return result
 
 
 def main(argv=None) -> int:
@@ -20,8 +36,12 @@ def main(argv=None) -> int:
             p.add_argument("--contains", help="filter matches by exact symbol occurrence")
     args = parser.parse_args(argv)
     try:
-        text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
-        document = decode(json.loads(text)) if args.command == "decode" else parse_document(text)
+        if args.file == "-":
+            text = _read(sys.stdin)
+        else:
+            with open(args.file, encoding="utf-8") as stream:
+                text = _read(stream)
+        document = decode(json.loads(text, object_pairs_hook=_object)) if args.command == "decode" else parse_document(text)
         if args.command == "check":
             print(json.dumps({"valid": True, "roots": len(document)}))
         elif args.command in ("fmt", "decode"):
@@ -31,7 +51,6 @@ def main(argv=None) -> int:
         elif args.command == "encode":
             print(json.dumps(encode(document), ensure_ascii=False, indent=2))
         elif args.command == "query":
-            from .tree import walk
             hits = query(document, parse_pattern(args.pattern), scope=args.scope)
             if args.contains is not None:
                 hits = [h for h in hits if any(t.symbol == args.contains for _, t in walk((h.term,)))]
