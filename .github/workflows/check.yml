@@ -1,0 +1,57 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install build
+      - run: python -m build
+      - run: python -m pip install --no-deps dist/*.whl
+      - run: python spec/check.py
+      - run: python -m unittest discover -s tests -v
+      - run: python tools/check_properties.py
+      - run: python tools/study_corpus.py
+      - run: python examples/layers.py
+      - run: python examples/workflows.py
+      - run: python examples/dialects.py
+      - run: python examples/knowledge/run.py
+      - run: python examples/dialect-chain/run.py --json
+      - run: |
+          python -m scir --version
+          for source in examples/*.scir; do
+            python -m scir fmt --check "$source"
+          done
+
+  portability:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m pip install .
+      - run: python -m unittest discover -s tests -p test_surface.py -v
+      - run: python -m unittest discover -s tests -p test_requirements.py -v
+      - run: python -m unittest discover -s tests -p test_views.py -v
+      - run: python -m unittest discover -s tests -p test_knowledge.py -v
+      - run: python spec/check.py

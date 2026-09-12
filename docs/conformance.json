@@ -1,0 +1,136 @@
+{
+  "format": "1.0",
+  "content": [
+    {
+      "name": "empty",
+      "source": "",
+      "canonical": "",
+      "sha256": "e789f00742866afb1e7b3a6fa4f80b411fd995c06bc0122db04847ed52a725a4"
+    },
+    {
+      "name": "leaf",
+      "source": "Alice",
+      "canonical": "Alice\n",
+      "sha256": "a92768c1c8189514dd40282ff45a29ca66a2dfbaabd9cd1784d6020ae010728f"
+    },
+    {
+      "name": "scope",
+      "source": "think ( Bob , not ( delete(Alice, File) ) )",
+      "canonical": "think(Bob, not(delete(Alice, File)))\n",
+      "sha256": "04c990e26810817f04d2464017707d5ae5babb9f0a7c8126c5ef5d497078710e"
+    },
+    {
+      "name": "separators",
+      "source": "# supplied note\nf( A , B, );\nC\n",
+      "canonical": "f(A, B)\nC\n",
+      "sha256": "5ce4e24f4813701ddf53095a7457ba99fcfdab21e1be12c71097701b8a3ca2b2"
+    },
+    {
+      "name": "quoted-labels",
+      "source": "text(\"\\u0041\"); \"\\u0410\\u043b\\u0438\\u0441\\u0430\"; \"?x\"",
+      "canonical": "text(A)\n\"Алиса\"\n\"?x\"\n",
+      "sha256": "c46d00f2686c46800e26daaadd47d3ecee0a063a9a26ecc21b5fcb21990bbb7e"
+    },
+    {
+      "name": "unicode-not-normalized",
+      "source": "\"\\u00e9\"\n\"e\\u0301\"",
+      "canonical": "\"é\"\n\"é\"\n",
+      "sha256": "5cdf736f7f60ec6e1c3fe8635b502cf0e54545054aa1956ff065e6b90b4bd819"
+    },
+    {
+      "name": "json-escapes",
+      "source": "\"\\u0000\\b\\t\\n\\f\\r\\u001f\\\"\\\\/é\"",
+      "canonical": "\"\\u0000\\b\\t\\n\\f\\r\\u001f\\\"\\\\/é\"\n",
+      "sha256": "7c90f25216f769ec511f84a5ace67618e80616605445ab507f65722fc8e6d5a4"
+    },
+    {
+      "name": "duplicate-occurrences",
+      "source": "pair(A,A); pair(A,A)",
+      "canonical": "pair(A, A)\npair(A, A)\n",
+      "sha256": "2269573b4f19391691a6f7907c1ec670bf0ea7aeca737308661b7e505b7c92ea"
+    }
+  ],
+  "transport": {
+    "canonical": "pair(A, A)\npair(A, A)\n",
+    "wire": {
+      "version": "scir-relations/1.0",
+      "nodes": [
+        [
+          0,
+          "pair"
+        ],
+        [
+          1,
+          "A"
+        ],
+        [
+          2,
+          "A"
+        ],
+        [
+          3,
+          "pair"
+        ],
+        [
+          4,
+          "A"
+        ],
+        [
+          5,
+          "A"
+        ]
+      ],
+      "args": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          3,
+          0,
+          4
+        ],
+        [
+          3,
+          1,
+          5
+        ]
+      ],
+      "roots": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          3
+        ]
+      ]
+    }
+  },
+  "reject_content": [
+    "A()",
+    "f(A())",
+    "?x",
+    "?_",
+    "A B",
+    "A;;B",
+    "f(,A)",
+    "f(A,,B)",
+    "f(A",
+    "f(A))",
+    "A\n(B)",
+    "\"\"",
+    "\"\\ud800\"",
+    "\"\\udfff\"",
+    "\"literal\nnewline\"",
+    "42",
+    "A = B"
+  ]
+}

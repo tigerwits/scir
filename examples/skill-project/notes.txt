@@ -1,0 +1,5 @@
+Hypothesis H1 says stale cache data causes errors in Report.
+Observation O1 records stale cache data.
+The draft says O1 supports H7, but these notes declare no H7.
+Alice spoke to Carol after she left. The context allows either Alice or Carol
+as the antecedent of "she".

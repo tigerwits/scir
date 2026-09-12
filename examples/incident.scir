@@ -1,0 +1,6 @@
+reported(Monitor, timeout(Checkout, Database))
+suspects(Alice, causes(stale(ConnectionPool), timeout(Checkout, Database)))
+suspects(Bob, causes(overload(Database), timeout(Checkout, Database)))
+recorded(Trace17, reuse(Checkout, expired(Connection7)))
+contradicts(Trace18, overload(Database))
+requires(restart(Checkout), approval(OnCall))

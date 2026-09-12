@@ -1,0 +1,5 @@
+report(R1, Alice, unavailable(Database))
+correction(R2, Alice, R1, exhausted(ConnectionPool))
+requires(ParseTask, on(failure(ParseDocument), all(preserve(Payload), return(Error), unchanged(State))))
+forbids(ParseTask, evaluate(Symbols))
+requires(ParseTask, pass(TestSuite))

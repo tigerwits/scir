@@ -1,0 +1,4 @@
+record(R1, requires(Parser, on(failure(Parse), return(Error))))
+record(R2, requires(Parser, on(failure(Parse), unchanged(State))))
+record(R3, forbids(Parser, evaluate(Payload)))
+record(R4, unspecified(timeoutPolicy(Parser)))

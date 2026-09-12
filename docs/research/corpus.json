@@ -1,0 +1,174 @@
+[
+  {
+    "id": "coreference",
+    "source": "Alice gave Bob the report. He showed it to Carol.",
+    "candidates": [
+      "past(give(Alice, Bob, Report))\npast(show(Bob, Report, Carol))"
+    ],
+    "backtranslation": "Alice gave the report to Bob; Bob showed that report to Carol.",
+    "notes": "Bob and Report are manually resolved. Stable spelling records an interpretation, not proof of identity.",
+    "query_pattern": "show(Bob, ?what, Carol)"
+  },
+  {
+    "id": "nested_belief",
+    "source": "Bob thinks Alice believes Carol is wrong.",
+    "candidates": [
+      "think(Bob, believe(Alice, wrong(Carol)))"
+    ],
+    "backtranslation": "Bob thinks that Alice believes Carol is wrong.",
+    "notes": "No nested wrong(Carol) root is introduced.",
+    "query_pattern": "wrong(?who)"
+  },
+  {
+    "id": "negation_outside",
+    "source": "Bob does not think Alice is wrong.",
+    "candidates": [
+      "not(think(Bob, wrong(Alice)))"
+    ],
+    "backtranslation": "It is not the case that Bob thinks Alice is wrong.",
+    "notes": "Negated belief differs from belief in a negation.",
+    "query_pattern": "think(Bob, ?content)"
+  },
+  {
+    "id": "negation_inside",
+    "source": "Bob thinks Alice is not wrong.",
+    "candidates": [
+      "think(Bob, not(wrong(Alice)))"
+    ],
+    "backtranslation": "Bob thinks Alice is not wrong.",
+    "notes": "The two trees in this contrast pair must not normalize together.",
+    "query_pattern": "think(Bob, ?content)"
+  },
+  {
+    "id": "ambiguous_pronoun",
+    "source": "Alice spoke to Carol after she left.",
+    "candidates": [
+      "past(after(speak(Alice, Carol), leave(Alice)))",
+      "past(after(speak(Alice, Carol), leave(Carol)))"
+    ],
+    "backtranslation": "Either Alice or Carol left before Alice spoke to Carol; which reading was intended is unresolved.",
+    "notes": "These are alternative parses, not a disjunction asserted by the source and not two roots in one document.",
+    "query_pattern": "leave(?who)"
+  },
+  {
+    "id": "conditional",
+    "source": "If Carol confirms the numbers tomorrow, Bob will send the report.",
+    "candidates": [
+      "if(tomorrow(confirm(Carol, Numbers)), future(send(Bob, Report)))"
+    ],
+    "backtranslation": "Conditional on Carol confirming the numbers tomorrow, Bob will send the report.",
+    "notes": "Tomorrow remains context-relative. The core does not interpret if as material implication.",
+    "query_pattern": "send(Bob, ?what)"
+  },
+  {
+    "id": "false_belief",
+    "source": "Bob believes the server is down, but the server is running.",
+    "candidates": [
+      "but(believe(Bob, down(Server)), running(Server))"
+    ],
+    "backtranslation": "Bob believes the server is down, whereas it is running.",
+    "notes": "A root query is not a semantic asserted-facts query: but remains opaque, so running(Server) is nested too.",
+    "query_pattern": "down(Server)"
+  },
+  {
+    "id": "correction",
+    "source": "Alice said the server was down. Later she corrected herself: the database was down.",
+    "candidates": [
+      "past(say(Alice, down(Server)))\nlater(correct(Alice, down(Server), down(Database)))"
+    ],
+    "backtranslation": "Alice first said the server was down and later corrected that statement to say the database was down.",
+    "notes": "A correction is preserved, not destructive replacement of the earlier report. This fixture does not decide the truth of either outage.",
+    "query_pattern": "down(?system)"
+  },
+  {
+    "id": "modality",
+    "source": "The cache may have caused the stale read.",
+    "candidates": [
+      "may(past(cause(Cache, StaleRead)))"
+    ],
+    "backtranslation": "It is possible that the cache caused the stale read.",
+    "notes": "No cause(Cache, StaleRead) root or invented numeric probability.",
+    "query_pattern": "cause(?x, ?y)"
+  },
+  {
+    "id": "requirement",
+    "source": "If parsing fails, preserve the original payload and return an error without mutating state.",
+    "candidates": [
+      "if(fail(Parse), and(preserve(OriginalPayload), return(Error), not(mutate(State))))"
+    ],
+    "backtranslation": "On a parse failure, preserve the original payload, return an error and do not mutate state.",
+    "notes": "These are instruction contents, not executable control flow or assertions that a parse has already failed.",
+    "query_pattern": "mutate(State)"
+  },
+  {
+    "id": "quote",
+    "source": "Alice said, \"Do not change main.\"",
+    "candidates": [
+      "past(say(Alice, quote(text(\"Do not change main.\"))))"
+    ],
+    "backtranslation": "Alice said the exact words: Do not change main.",
+    "notes": "Lexical quoting only encodes a symbol; quote/text are explicit ordinary vocabulary. No code is executed.",
+    "query_pattern": "text(?words)"
+  },
+  {
+    "id": "event_reference",
+    "source": "Bob called Carol, but she did not answer that call.",
+    "candidates": [
+      "past(call(Call1, Bob, Carol))\nnot(past(answer(Carol, Call1)))"
+    ],
+    "backtranslation": "Bob placed call Call1 to Carol; Carol did not answer Call1.",
+    "notes": "Call1 is an explicit shared discourse identifier, using a local call(event, caller, callee) convention. Tree paths alone cannot supply event identity.",
+    "query_pattern": "call(?event, Bob, Carol)"
+  },
+  {
+    "id": "active",
+    "source": "Alice emailed Bob the report.",
+    "candidates": [
+      "past(email(Alice, Bob, Report))"
+    ],
+    "backtranslation": "Alice sent Bob the report by email.",
+    "notes": "The same candidate is assigned to the passive paraphrase by this author; that is an oracle choice, not measured model convergence.",
+    "query_pattern": "email(?from, Bob, ?what)"
+  },
+  {
+    "id": "passive",
+    "source": "The report was emailed to Bob by Alice.",
+    "candidates": [
+      "past(email(Alice, Bob, Report))"
+    ],
+    "backtranslation": "Alice emailed Bob the report.",
+    "notes": "See active: syntax checks validate the chosen structures, not independent translation quality.",
+    "query_pattern": "email(?from, Bob, ?what)"
+  },
+  {
+    "id": "sent",
+    "source": "Alice sent Bob the report.",
+    "candidates": [
+      "past(send(Alice, Report, Bob))"
+    ],
+    "backtranslation": "Alice sent the report to Bob.",
+    "notes": "Do not silently equate sending with receipt.",
+    "query_pattern": "send(?from, Report, Bob)"
+  },
+  {
+    "id": "received",
+    "source": "Bob received the report from Alice.",
+    "candidates": [
+      "past(receive(Bob, Report, Alice))"
+    ],
+    "backtranslation": "Bob received the report from Alice.",
+    "notes": "Different source commitment from sent; retain different vocabulary.",
+    "query_pattern": "receive(Bob, ?what, Alice)"
+  },
+  {
+    "id": "correlated_ambiguity",
+    "source": "Alice met Carol. She revised her own report.",
+    "candidates": [
+      "past(meet(Alice, Carol))\npast(revise(Alice, reportOf(Alice)))",
+      "past(meet(Alice, Carol))\npast(revise(Carol, reportOf(Carol)))"
+    ],
+    "backtranslation": "Alice met Carol; either Alice revised her own report or Carol revised her own report.",
+    "notes": "Whole-document alternatives preserve correlated choices. Two independent actor/owner candidate lists would incorrectly permit crossed readings.",
+    "query_pattern": "revise(?who, ?report)"
+  }
+]

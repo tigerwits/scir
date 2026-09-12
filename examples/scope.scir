@@ -1,0 +1,2 @@
+think(Bob, not(delete(Alice, File)))
+not(think(Bob, delete(Alice, File)))

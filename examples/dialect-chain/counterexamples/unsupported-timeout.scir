@@ -1,0 +1,5 @@
+condition(C1, failure(Parse))
+record(R1, requires(Parser, on(ref(C1), return(Error))))
+record(R2, requires(Parser, on(ref(C1), unchanged(State))))
+record(R3, forbids(Parser, evaluate(Payload)))
+record(R4, timeout(Parser, "30s"))
