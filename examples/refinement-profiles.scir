@@ -1,0 +1,14 @@
+validation(Example,
+  stage(draft, parents, rules),
+  stage(sourced, parents(draft), rules(hasSource)),
+  stage(reviewed, parents(sourced), rules(hasReview)))
+usage("from scir.refinement import Checker, compile_profile, evaluate, require_extension")
+contract(OptIn, "The caller selects the profile and binds checker names to trusted Python functions. No content label selects its own validation policy.")
+contract(Cumulative, "Parent checks are retained in order. Repeated inherited checker names are evaluated once. Missing checker prerequisites are rejected.")
+contract(Failure, "Validation stops on the first failing checker, reports what executed, and never turns an incomplete check into success.")
+contract(Extension, "require_extension checks ordered retained names and in-process callable identity. It does not establish semantic equivalence across checker implementations.")
+contract(Identity, "The selected profile and input have structural fingerprints. Separately pin checker code and environment for replay.")
+boundary(SCIR, "Generic ordered symbolic terms; constraints are optional consumer contracts, not truth, execution authorization or mathematical proof.")
+boundary(Lean, "Mathematical formalization and checked mathematical evidence remain external.")
+boundary(TLAPlus, "State and temporal specifications and their checking evidence remain external.")
+status(ExperimentalAPI, "No format or existing public API changes. Not a release or a full-repository verification claim.")
