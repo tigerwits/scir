@@ -82,7 +82,7 @@ def compile_profile(document: Document, name: str,
 
 All stages of the selected profile must resolve, even if not evaluated. Ordered
 parent union preserves each parent's prerequisite order and evaluates inherited
-checker names once. A conflicting order is rejected rather than reordered.
+checker names once. An incompatible ordered union is rejected rather than reordered.
 The fingerprint covers selected plan data, NOT the Python checker implementation.
 """
     check(document, ())
@@ -130,7 +130,10 @@ The fingerprint covers selected plan data, NOT the Python checker implementation
                 if missing:
                     raise ValueError(f"{stage}: {rule} missing prior checks {sorted(missing)}")
                 seen.add(rule)
-            compiled[stage] = Stage(stage, tuple((r, bindings[r]) for r in names))
+            candidate = Stage(stage, tuple((r, bindings[r]) for r in names))
+            for parent in parents:
+                require_extension(compiled[parent], candidate)
+            compiled[stage] = candidate
     return Profile(name, digest((root,)), tuple(compiled[s] for s in declarations))
 
 
