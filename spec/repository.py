@@ -132,6 +132,9 @@ def propose_checked(index: Index, request: str, root: Path = ROOT):
 
 def maintenance(root: Path = ROOT, *, write_views=False, markdown=False) -> int:
     try:
+        # Location resolvers return absolute canonical paths, including on macOS
+        # temporary-directory aliases and Windows case/short-name aliases.
+        root = root.resolve()
         index = load(root)
         changes = updates(index, root)
         if changes and not write_views:
