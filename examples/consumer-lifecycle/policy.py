@@ -17,6 +17,15 @@ RECOVERY = parse('when(ambiguous(submission), require(before(lookup(originalKey)
 MAX_RECORDS = 256
 
 
+FIELDS = MappingProxyType({
+    "Decision": frozenset({"status", "scope", "supersedes", "reason"}),
+    "Recovery": frozenset({"scope", "reason"}),
+    "Evidence": frozenset({"scope", "subject", "receipt", "operation", "outcome", "reason"}),
+    "Task": frozenset({"scope", "status", "decision", "recovery", "dependsOn", "evidence", "reason"}),
+    "Note": frozenset({"reason"}),
+})
+
+
 class PolicyError(p.ProfileError):
     """This consumer rejects a structurally valid commitment."""
 
@@ -103,16 +112,9 @@ def check(index: Index, trusted: TrustedInputs) -> None:
     """Check the whole candidate. Completion needs trusted external receipts."""
     if len(index.records) > MAX_RECORDS:
         raise p.LimitError("consumer record budget exceeded")
-    allowed = {
-        "Decision": {"status", "scope", "supersedes", "reason"},
-        "Recovery": {"scope", "reason"},
-        "Evidence": {"scope", "subject", "receipt", "operation", "outcome", "reason"},
-        "Task": {"scope", "status", "decision", "recovery", "dependsOn", "evidence", "reason"},
-        "Note": {"reason"},
-    }
     for record in index.records.values():
         fields = dict(record.fields)
-        require(record.kind in allowed and set(fields) <= allowed[record.kind], "unknown consumer kind or field")
+        require(record.kind in FIELDS and set(fields) <= FIELDS[record.kind], "unknown consumer kind or field")
         if record.kind != "Note":
             require(fields.get("scope") == STAGING, "staging scope is required")
         if record.kind == "Decision":
