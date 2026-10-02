@@ -1,0 +1,40 @@
+name: Reviewed branch cleanup
+on:
+  pull_request:
+    paths: ['tools/prune_merged_branches.py', 'tools/branch-cleanup.json', 'tests/test_branch_cleanup.py', '.github/workflows/branch-cleanup.yml']
+  push:
+    branches: [main]
+    paths: ['tools/branch-cleanup.json', '.github/workflows/branch-cleanup.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13'
+      - run: python -m unittest discover -s tests -p test_branch_cleanup.py -v
+  prune:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13'
+      - name: Delete reviewed merged tips with compare-and-delete leases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/prune_merged_branches.py --manifest tools/branch-cleanup.json --merged-head maintenance/archive-cleanup --apply
