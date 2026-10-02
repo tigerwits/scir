@@ -128,3 +128,78 @@ def read_request(source: str, *, max_bytes: int = 1_000_000,
             terms.append(value)
     p.validate(tuple(terms), limits=limits)  # Aggregate inserted content, not per-op only.
     return Request(obj["collection"], snapshot, tuple(operations))
+
+
+@dataclass(frozen=True, slots=True)
+class Proposal:
+    collection: str
+    before_snapshot: str
+    candidate_snapshot: str
+    document: Document
+    request: Request
+
+    def as_dict(self) -> dict:
+        return {
+            "version": "scir-proposal/1", "profile": WORKING_VERSION,
+            "collection": self.collection, "before_snapshot": self.before_snapshot,
+            "candidate_snapshot": self.candidate_snapshot,
+            "request": self.request.as_dict(), "records": [str(t) for t in self.document],
+            "validation": {"profile": WORKING_VERSION, "complete": True},
+        }
+
+
+def propose(index: Index, source: str, *, limits: p.Limits = p.Limits(),
+            max_records: int = 10_000, max_operations: int = 1024,
+            max_request_bytes: int = 1_000_000,
+            max_result_bytes: int = 16_000_000) -> Proposal:
+    """Build a validated candidate only. Hosts own atomic persistence and policy."""
+    if type(index) is not Index:
+        raise ValueError("expected an Index built from the current collection")
+    _positive(max_result_bytes, "max_result_bytes")
+    request = read_request(source, max_bytes=max_request_bytes,
+                           max_operations=max_operations, limits=limits)
+    if request.collection != index.collection or request.expected_snapshot != index.snapshot:
+        raise ConflictError("collection or source snapshot precondition failed")
+    candidate = {i: r.term for i, r in index.records.items()}
+    touched, created = {}, []
+    for operation in request.operations:
+        op, identifier = operation.op, operation.id
+        slots = touched.setdefault(identifier, set())
+        whole = op in ("createRecord", "deleteRecord")
+        slot = ("whole", "") if whole else (("payload", "") if op == "replacePayload" else ("field", operation.field))
+        if (whole and slots) or ("whole", "") in slots or slot in slots:
+            raise ConflictError("conflicting operations for record: " + identifier)
+        slots.add(slot)
+        if op == "createRecord":
+            if identifier in index.records:
+                raise ConflictError("create requires an absent record: " + identifier)
+            candidate[identifier] = operation.value
+            created.append(identifier)
+            continue
+        if identifier not in candidate:
+            raise ConflictError("operation requires an existing record: " + identifier)
+        if op == "deleteRecord":
+            del candidate[identifier]
+            continue
+        old = candidate[identifier]
+        args, fields = p._split(old)
+        payload, values = args[2], dict(fields)
+        if op == "replacePayload":
+            payload = operation.value
+        elif op == "setField":
+            values[operation.field] = operation.value
+        else:
+            if operation.field not in values:
+                raise ConflictError("remove requires an existing field: " + operation.field)
+            del values[operation.field]
+        candidate[identifier] = p.application("record", (args[0], args[1], payload),
+                                               fields=tuple(values.items()), limits=limits)
+    # Preserve surviving order; append creates, including forward/cyclic references.
+    order = tuple(i for i in index.records if i in candidate) + tuple(created)
+    document = tuple(candidate[i] for i in order)
+    final = build_index(document, collection=index.collection, limits=limits, max_records=max_records)
+    result = Proposal(index.collection, index.snapshot, final.snapshot, document, request)
+    wire = json.dumps(result.as_dict(), ensure_ascii=False, separators=(",", ":")) + "\n"
+    if len(wire.encode("utf-8")) > max_result_bytes:
+        raise p.LimitError("proposal packet byte budget exceeded")
+    return result
