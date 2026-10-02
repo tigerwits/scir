@@ -2,16 +2,23 @@
 from __future__ import annotations
 
 import argparse
-import ast
 from collections import Counter, defaultdict
 from functools import cache
 from html import escape
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import re
 import sys
 
 from scir import Document, format_document, match, parse_document, parse_pattern, query
 from scir.constraints import Violation, check, forms
+from scir.profile import LimitError
+
+if __package__:
+    from .locations import local_file, declarations as source_declarations
+elif __name__ == "__main__":
+    from locations import local_file, declarations as source_declarations
+else:
+    from spec.locations import local_file, declarations as source_declarations
 
 ROOT = Path(__file__).resolve().parents[1]
 AREAS = frozenset(("Core", "Syntax", "Patterns", "Tree", "Annotations", "Transport", "Constraints", "CLI"))
@@ -24,21 +31,6 @@ PATTERNS = tuple(map(parse_pattern, (
     "note(?id, ?text)",
     "queryExample(?example, ?id, ?input, ?pattern, ?scope, ?paths)",
 )))
-
-
-def local_file(root: Path, name: str, suffix: str) -> Path:
-    parts = name.split("/")
-    if ("\\" in name or ":" in name or any(p in ("", ".", "..") for p in parts)
-            or PurePosixPath(name).is_absolute() or not name.endswith(suffix)):
-        raise ValueError(f"expected a repository-relative {suffix} file: {name!r}")
-    path = root.resolve()
-    for part in parts:
-        path = path / part
-        if path.is_symlink():
-            raise ValueError(f"symlink is not a source reference: {name!r}")
-    if not path.is_file():
-        raise ValueError(f"missing source file: {name!r}")
-    return path
 
 
 def targets(document: Document, root: Path):
@@ -67,24 +59,7 @@ def targets(document: Document, root: Path):
 
     @cache
     def locations(name: str, kind: str):
-        suffix = ".md" if kind == "specifiedBy" else ".py"
-        path = local_file(root, name, suffix)
-        if kind == "coveredBy" and (not name.startswith("tests/") or not path.name.startswith("test_")):
-            raise ValueError("test references must name tests/test_*.py files")
-        text = path.read_text(encoding="utf-8")
-        if kind == "specifiedBy":
-            # A code block containing '# Heading' is not a Markdown section.
-            text = re.sub(r"^```[^\n]*\n.*?^```[ \t]*$", "", text, flags=re.M | re.S)
-            return re.findall(r"^#{1,6} (.+?)\s*$", text, flags=re.M)
-        try:
-            module = ast.parse(text, filename=name)
-        except SyntaxError as error:
-            raise ValueError(f"test file does not parse: {name!r}") from error
-        return [f"{cls.name}.{method.name}"
-                for cls in module.body if isinstance(cls, ast.ClassDef)
-                if any(isinstance(base, ast.Attribute) and isinstance(base.value, ast.Name)
-                       and base.value.id == "unittest" and base.attr == "TestCase" for base in cls.bases)
-                for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith("test_")]
+        return source_declarations(root, name, {"specifiedBy": "section", "coveredBy": "test"}[kind])
 
     seen, valid = set(), defaultdict(set)
     for i, term in links:
@@ -105,6 +80,8 @@ def targets(document: Document, root: Path):
             count = locations(name, term.symbol).count(location)
             if count != 1:
                 raise ValueError(f"expected one {location!r} in {name!r}; found {count}")
+        except LimitError:
+            raise  # An unfinished scan is not evidence of a missing location.
         except ValueError as error:
             yield Violation((i, 1), "location", str(error))
         else:

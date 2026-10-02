@@ -35,9 +35,10 @@ def read_source(path: Path) -> str:
 def declarations(root: Path, name: str, kind: str) -> list[str]:
     suffix = {"section": ".md", "test": ".py", "model": ".lean"}[kind]
     path = local_file(root, name, suffix)
-    text = read_source(path)
+    # Inspection accepts ordinary source line endings; stored source and view
+    # bytes are neither normalized nor rewritten by this location resolver.
+    text = read_source(path).replace("\r\n", "\n").replace("\r", "\n")
     if kind == "section":
-        # Same explicit heading/fence convention as the original catalog checker.
         text = re.sub(r"^```[^\n]*\n.*?^```[ \t]*$", "", text, flags=re.M | re.S)
         return re.findall(r"^#{1,6} (.+?)\s*$", text, flags=re.M)
     if kind == "test":
@@ -54,7 +55,6 @@ def declarations(root: Path, name: str, kind: str) -> list[str]:
                 for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith("test_")]
     if not name.startswith("proofs/"):
         raise ValueError("model references must name proofs/*.lean files")
-    # This is declaration bookkeeping for the repository's simple Lean files,
-    # not elaboration, axiom auditing, or validation of the theorem's statement.
+    # Declaration bookkeeping, not elaboration or axiom auditing.
     text = re.sub(r"/-.*?-/|--[^\n]*", "", text, flags=re.S)
     return re.findall(r"^theorem ([A-Za-z_][A-Za-z_0-9]*)\b", text, flags=re.M)
