@@ -15,7 +15,8 @@ from scir.profile import LimitError
 
 if __package__:
     from .locations import local_file, declarations as source_declarations
-elif __name__ == "__main__":
+elif __name__ == "__main__" or Path(sys.path[0]).resolve() == Path(__file__).resolve().parent:
+    # Includes repository.py importing this module as a sibling script.
     from locations import local_file, declarations as source_declarations
 else:
     from spec.locations import local_file, declarations as source_declarations
