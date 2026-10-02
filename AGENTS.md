@@ -5,19 +5,28 @@ should read the [consumer skill](skills/scir/SKILL.md).
 
 Read [SPEC.md](SPEC.md) before changing behavior. [API](docs/api.md),
 [theory](docs/theory.md), and [dialects](docs/dialects.md) explain the other layers.
+The optional profiles have their own [contract](docs/structured-profiles.md).
 
 ## Change workflow
 
-Use [the SCIR content](spec/requirements.scir) to find affected IDs, wording,
-examples, and test links. [The maintenance guide](spec/README.md) defines ownership.
-Query/occurrence paragraphs in SPEC and the API guide are generated: edit their
-SCIR records, then run `python spec/check.py --write-views`. Review the resulting
-diff. Never independently edit those views or silently treat a prose revision as
-a new source fact. Other topics are still authored in their linked Markdown.
+Use the combined working collection in [native records](spec/native.scir) and
+[profile knowledge](spec/knowledge.scir). Read [ownership](spec/OWNERSHIP.md).
+Find the affected IDs, rationale, qualifications and independent test links with
+`python spec/check.py knowledge select --id ID`. Use `knowledge affected` for
+review dependencies. These commands do not infer truth or certify test adequacy.
 
-Run `python spec/check.py` before and after changes. It checks links, stored query
-examples, and view freshness; it does not run the referenced tests or establish
-that changed wording is correct. Keep the independent conformance tests.
+`spec/requirements.scir` is a derived compatibility view, not an editable source.
+The six query/occurrence records in `spec/native.scir` own exact wording and
+examples; their marked SPEC/API paragraphs are generated. Other normative rules
+remain document-owned and their records are indexes. Edit the designated owner,
+then run `python spec/check.py --write-views` and review the diff. Never treat an
+independent prose revision or automatic rendering as a new source fact.
+
+Run `python spec/check.py` before and after changes. It checks both source shards,
+references, source/test/model links, stored query examples and view freshness. It
+does not run the linked tests or Lean proofs. Keep independent conformance tests.
+Repository `knowledge propose --change FILE` validates the stronger local contract
+and returns a candidate; it never persists or automatically approves a change.
 
 ## Authored prose and working knowledge
 

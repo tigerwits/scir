@@ -263,13 +263,31 @@ def render(document: Document) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _repository():
+    if __package__:
+        from . import repository
+    elif __name__ == "__main__":
+        import repository
+    else:
+        from spec import repository
+    return repository
+
+
 def main(argv=None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] == ["knowledge"]:
+        return _repository().main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("file", nargs="?", type=Path, default=ROOT / "spec/requirements.scir")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--markdown", action="store_true", help="print the requirement index")
     mode.add_argument("--write-views", action="store_true", help="refresh the two generated query sections")
     args = parser.parse_args(argv)
+    # The real repository uses authoritative working records. Retain the legacy
+    # validator API for explicitly supplied catalogs and test fixture roots.
+    if (ROOT.resolve() == Path(__file__).resolve().parents[1]
+            and args.file.resolve() == Path(__file__).resolve().with_name("requirements.scir")):
+        return _repository().maintenance(ROOT, write_views=args.write_views, markdown=args.markdown)
     try:
         text = args.file.read_bytes().decode("utf-8")
         document = parse_document(text)
