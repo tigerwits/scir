@@ -1,6 +1,6 @@
 ---
 name: scir
-description: Draft, query, edit, and check Symbolic Content IR. Use when working with .scir files, explicitly selected .scix notation, explicit SCIR requests, or supplied SCIR dialects.
+description: Draft, query, edit, and validate SCIR content. Use for .scir files, explicit .scix notation, SCIR requests, and supplied dialects.
 ---
 
 # Use SCIR
