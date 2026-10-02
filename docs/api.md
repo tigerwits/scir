@@ -46,7 +46,7 @@ constructors reject pattern children.
 ## Queries
 
 <!-- scir:query-api:start -->
-<!-- Maintained in spec/requirements.scir; refresh with python spec/check.py --write-views. -->
+<!-- Maintained in spec/native.scir; refresh with python spec/check.py --write-views. -->
 
 A path is a nonempty sequence `(root_index, child_index, ...)` of nonnegative integers. Python Booleans are not indices. Paths are local to a document snapshot.
 

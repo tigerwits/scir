@@ -14,9 +14,11 @@ from scir.profile import LimitError, ProfileError, read_fields, read_tuple
 if __package__:
     from .locations import declarations, local_file, read_source
     from .projection import legacy_document, QUERY_FIELDS
+    from . import catalog
 else:
     from locations import declarations, local_file, read_source
     from projection import legacy_document, QUERY_FIELDS
+    import catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 COLLECTION = "scir-repository"
@@ -84,18 +86,10 @@ def validate(document: Document, root: Path = ROOT) -> Index:
             raise ProfileError("decision/question needs an authored status")
     projected = legacy_document(index)
     if projected:
-        issues = _legacy().validate_catalog(projected, root)
+        issues = catalog.validate_catalog(projected, root)
         if issues:
             raise ProfileError("invalid legacy projection: " + "; ".join(i.message for i in issues))
     return index
-
-
-def _legacy():
-    if __package__:
-        from . import check
-    else:
-        import check
-    return check
 
 
 def load(root: Path = ROOT) -> Index:
@@ -117,7 +111,7 @@ def updates(index: Index, root: Path = ROOT):
     legacy = local_file(root, "spec/requirements.scir", ".scir")
     expected = format_document(projected).encode("utf-8")
     changes = [] if legacy.read_bytes() == expected else [(legacy, expected)]
-    changes.extend(_legacy().view_updates(projected, root))
+    changes.extend(catalog.view_updates(projected, root))
     return changes
 
 
@@ -144,7 +138,7 @@ def maintenance(root: Path = ROOT, *, write_views=False, markdown=False) -> int:
                 path.write_bytes(data)
             print(f"Refreshed {len(changes)} derived files; authoritative records were not changed.")
         elif markdown:
-            print(_legacy().render(legacy_document(index)), end="")
+            print(catalog.render(legacy_document(index)), end="")
         else:
             print(f"Checked {len(index.records)} repository records and all derived views; linked tests were not run.")
         return 0

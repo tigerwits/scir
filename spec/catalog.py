@@ -1,0 +1,241 @@
+"""Check maintained SCIR content, run query examples, and refresh Markdown views."""
+from __future__ import annotations
+
+from collections import Counter, defaultdict
+from functools import cache
+from html import escape
+from pathlib import Path
+import re
+import sys
+
+from scir import Document, format_document, match, parse_document, parse_pattern, query
+from scir.constraints import Violation, check, forms
+from scir.profile import LimitError
+
+if __package__:
+    from .locations import local_file, declarations as source_declarations
+elif __name__ == "__main__" or Path(sys.path[0]).resolve() == Path(__file__).resolve().parent:
+    # Includes repository.py importing this module as a sibling script.
+    from locations import local_file, declarations as source_declarations
+else:
+    from spec.locations import local_file, declarations as source_declarations
+
+ROOT = Path(__file__).resolve().parents[1]
+AREAS = frozenset(("Core", "Syntax", "Patterns", "Tree", "Annotations", "Transport", "Constraints", "CLI"))
+PATTERNS = tuple(map(parse_pattern, (
+    "requirement(?id, ?area, ?obligation)",
+    "specifiedBy(?id, section(?file, ?heading))",
+    "coveredBy(?id, test(?file, ?method))",
+    "topic(?id, ?topic)",
+    "wording(?id, ?text)",
+    "note(?id, ?text)",
+    "queryExample(?example, ?id, ?input, ?pattern, ?scope, ?paths)",
+)))
+
+
+def targets(document: Document, root: Path):
+    """Resolve declaration IDs and static source locations in one fixed checkout."""
+    declarations, links = defaultdict(list), []
+    for i, term in enumerate(document):
+        if term.symbol not in ("requirement", "specifiedBy", "coveredBy"):
+            continue
+        if not any(match(p, term) is not None for p in PATTERNS):
+            continue  # The form rule owns malformed records.
+        ident = term.args[0]
+        if ident.args:
+            yield Violation((i, 0), "identifier", "requirement IDs must be leaves")
+            continue
+        if term.symbol == "requirement":
+            declarations[ident.symbol].append(i)
+            if term.args[1].args or term.args[1].symbol not in AREAS:
+                yield Violation((i, 1), "area", "unknown area; use a declared area leaf")
+        else:
+            links.append((i, term))
+    if not declarations:
+        yield Violation(None, "nonempty", "at least one requirement is required")
+    for ident, indices in declarations.items():
+        for i in indices[1:]:
+            yield Violation((i, 0), "duplicate-id", f"requirement {ident!r} is declared more than once")
+
+    @cache
+    def locations(name: str, kind: str):
+        return source_declarations(root, name, {"specifiedBy": "section", "coveredBy": "test"}[kind])
+
+    seen, valid = set(), defaultdict(set)
+    for i, term in links:
+        ident, target = term.args
+        indices = declarations.get(ident.symbol, [])
+        if len(indices) != 1:
+            reason = "unknown" if not indices else "ambiguous"
+            yield Violation((i, 0), "reference", f"{reason} requirement: {ident.symbol!r}")
+        if any(arg.args for arg in target.args):
+            yield Violation((i, 1), "location", "file and location must be leaves")
+            continue
+        key = (term.symbol, ident.symbol, *(arg.symbol for arg in target.args))
+        if key in seen:
+            yield Violation((i,), "duplicate-link", "duplicate source or test link")
+        seen.add(key)
+        name, location = (arg.symbol for arg in target.args)
+        try:
+            count = locations(name, term.symbol).count(location)
+            if count != 1:
+                raise ValueError(f"expected one {location!r} in {name!r}; found {count}")
+        except LimitError:
+            raise  # An unfinished scan is not evidence of a missing location.
+        except ValueError as error:
+            yield Violation((i, 1), "location", str(error))
+        else:
+            if len(indices) == 1:
+                valid[ident.symbol].add(term.symbol)
+    for ident, indices in declarations.items():
+        for kind, rule in (("specifiedBy", "source"), ("coveredBy", "coverage")):
+            if kind not in valid[ident]:
+                yield Violation((indices[0],), rule, f"{ident!r} needs a valid {kind} link")
+
+
+def example_parts(term):
+    """A query example is data; only the library's query operation is invoked."""
+    ident, owner, source, pattern, scope, expected = term.args
+    if (ident.args or owner.args or pattern.args or scope.args
+            or source.symbol != "input" or expected.symbol != "paths"
+            or scope.symbol not in ("default", "roots", "all")):
+        raise ValueError("expected leaf IDs/pattern/scope, input(...), and paths(...)")
+    paths = []
+    for path in expected.args:
+        if path.symbol != "path" or not path.args or any(
+                x.args or not re.fullmatch(r"0|[1-9][0-9]*", x.symbol) for x in path.args):
+            raise ValueError("expected path with canonical nonnegative integer labels")
+        paths.append(tuple(int(x.symbol) for x in path.args))
+    return source.args, parse_pattern(pattern.symbol), scope.symbol, paths
+
+
+def content_rules(document: Document):
+    declarations = Counter(t.args[0].symbol for t in document
+                           if t.symbol == "requirement" and len(t.args) == 3 and not t.args[0].args)
+    fields, examples = defaultdict(list), []
+    names = set()
+    for i, term in enumerate(document):
+        if term.symbol not in ("topic", "wording", "note", "queryExample"):
+            continue
+        if not any(match(p, term) is not None for p in PATTERNS):
+            continue
+        owner = term.args[1] if term.symbol == "queryExample" else term.args[0]
+        if owner.args or declarations[owner.symbol] != 1:
+            yield Violation((i,), "content-reference", "content needs one declared requirement")
+            continue
+        if term.symbol == "queryExample":
+            examples.append((i, term))
+            if term.args[0].args or term.args[0].symbol in names:
+                yield Violation((i, 0), "example-id", "example IDs must be unique leaves")
+            names.add(term.args[0].symbol)
+            continue
+        value = term.args[1]
+        fields[owner.symbol, term.symbol].append((i, value))
+        if value.args or (term.symbol == "topic" and value.symbol != "Queries"):
+            yield Violation((i, 1), "content-field", "expected a text leaf or the topic Queries")
+        elif term.symbol != "topic" and "<!-- scir:" in value.symbol:
+            yield Violation((i, 1), "content-field", "view markers are not maintained wording")
+    for (owner, kind), entries in fields.items():
+        if len(entries) != 1:
+            yield Violation((entries[1][0],), "duplicate-content", f"duplicate {kind} for {owner}")
+        needed = "wording" if kind == "topic" else "topic"
+        if (owner, needed) not in fields:
+            yield Violation((entries[0][0],), "missing-content", f"{owner} needs {needed}")
+    for i, term in examples:
+        if (term.args[1].symbol, "topic") not in fields:
+            yield Violation((i, 1), "content-reference", "example owner needs a topic")
+        try:
+            source, pattern, scope, expected = example_parts(term)
+            kwargs = {} if scope == "default" else {"scope": scope}
+            actual = [hit.path for hit in query(source, pattern, **kwargs)]
+        except ValueError as error:
+            yield Violation((i,), "query-example", str(error))
+        else:
+            if actual != expected:
+                yield Violation((i, 5), "query-example", f"expected paths {expected!r}; got {actual!r}")
+
+
+def validate_catalog(document: Document, root: Path = ROOT) -> tuple[Violation, ...]:
+    return check(document, (forms(*PATTERNS), lambda d: targets(d, root), content_rules))
+
+
+# These two project views are fixed renderers, not a document-template language.
+VIEWS = (("SPEC.md", "query-spec"), ("docs/api.md", "query-api"))
+
+
+def render_queries(document: Document, *, examples: bool) -> str:
+    owners = [t.args[0].symbol for t in document if t.symbol == "topic"]
+    if not owners:
+        raise ValueError("the query views require maintained query content")
+    fields = {(t.args[0].symbol, t.symbol): t.args[1].symbol for t in document
+              if t.symbol in ("wording", "note")}
+    lines = ["<!-- Maintained in spec/native.scir; refresh with python spec/check.py --write-views. -->", ""]
+    for owner in owners:
+        lines.extend((fields[owner, "wording"], ""))
+        if examples and (owner, "note") in fields:
+            lines.extend((fields[owner, "note"], ""))
+    if examples:
+        for term in document:
+            if term.symbol != "queryExample":
+                continue
+            source, _, scope, paths = example_parts(term)
+            pattern = term.args[3].symbol
+            argument = "" if scope == "default" else f", scope={scope!r}"
+            lines.extend((
+                "<code>" + escape(str(term.args[0])) + "</code>", "", "```python",
+                "from scir import parse_document, parse_pattern, query", "",
+                f"content = parse_document({format_document(source)!r})",
+                f"pattern = parse_pattern({pattern!r})",
+                f"hits = query(content, pattern{argument})",
+                f"assert [hit.path for hit in hits] == {paths!r}", "```", "",
+            ))
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def replace_view(text: str, key: str, body: str) -> str:
+    start, end = (f"<!-- scir:{key}:{part} -->" for part in ("start", "end"))
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise ValueError(f"expected exactly one marker pair for {key}")
+    a, b = text.index(start), text.index(end)
+    if (a >= b or (a and text[a - 1] != "\n") or text[a + len(start):a + len(start) + 1] != "\n"
+            or text[b - 1] != "\n" or text[b + len(end):b + len(end) + 1] not in ("", "\n")):
+        raise ValueError(f"invalid marker boundaries for {key}")
+    return text[:a + len(start)] + "\n" + body + text[b:]
+
+
+def view_updates(document: Document, root: Path = ROOT) -> list[tuple[Path, bytes]]:
+    """Preflight every destination before an explicit write; preserve other bytes."""
+    updates = []
+    for name, key in VIEWS:
+        path = local_file(root, name, ".md")
+        source = path.read_bytes()
+        rendered = render_queries(document, examples=key == "query-api")
+        expected = replace_view(source.decode("utf-8"), key, rendered).encode("utf-8")
+        if source != expected:
+            updates.append((path, expected))
+    return updates
+
+
+def render(document: Document) -> str:
+    """Render a checked catalog as an index, never a paraphrased specification."""
+    links = defaultdict(list)
+    for term in document:
+        if term.symbol in ("specifiedBy", "coveredBy"):
+            links[term.args[0].symbol, term.symbol].append(str(term.args[1]))
+
+    def code(value):
+        return "<code>" + escape(str(value)).replace("|", "&#124;") + "</code>"
+
+    lines = ["<!-- Generated by python spec/check.py --markdown; do not edit. -->",
+             "# Project requirement index", "",
+             "Declared links, not proof of coverage or test execution. Query wording is maintained in spec/native.scir; other definitions remain in linked sections.", "",
+             "| ID | Area | Obligation shorthand | Defined in | Declared tests |",
+             "| --- | --- | --- | --- | --- |"]
+    for term in document:
+        if term.symbol == "requirement":
+            ident, area, obligation = term.args
+            cells = [code(ident), code(area), code(obligation)]
+            cells += ["<br>".join(map(code, links[ident.symbol, kind])) for kind in ("specifiedBy", "coveredBy")]
+            lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines) + "\n"
+

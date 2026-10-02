@@ -7,8 +7,10 @@ Additive opt-in profiles have their own [contract](docs/structured-profiles.md) 
 [API](docs/profiles-api.md); they do not change the native rules below.
 
 The marked query/occurrence paragraphs below are generated from
-[the maintained SCIR records](spec/requirements.scir). Edit those records, then
-run `python spec/check.py --write-views`. Other sections are maintained here.
+[the maintained SCIR records](spec/native.scir). Edit those records, then
+run `python spec/check.py --write-views`. The compatibility catalog
+`spec/requirements.scir` is derived, not an authoring source. Other sections are
+maintained here.
 
 ## Content
 
@@ -104,7 +106,7 @@ binders or implicit substitutions into symbol labels.
 ## Occurrences and operations
 
 <!-- scir:query-spec:start -->
-<!-- Maintained in spec/requirements.scir; refresh with python spec/check.py --write-views. -->
+<!-- Maintained in spec/native.scir; refresh with python spec/check.py --write-views. -->
 
 A path is a nonempty sequence `(root_index, child_index, ...)` of nonnegative integers. Python Booleans are not indices. Paths are local to a document snapshot.
 
