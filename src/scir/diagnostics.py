@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 from . import profile as p
+from .core import format_document
+from ._profile_native import native
 from .knowledge import Index, _positive, _select_content
 from .notation import Limits as NotationLimits, pretty
 
@@ -32,12 +34,16 @@ def diagnose(index: Index, identifiers: tuple[str, ...], *, encoding: str = "nat
     reference_count = sum(len(index.references[i]) for i in chosen)
     original_packet = json.dumps(selection.as_dict(), ensure_ascii=False, separators=(",", ":")) + "\n"
     encoding_check = {"encoding": encoding, "complete": True, "bytes": selected.bytes}
-    if encoding == "notation":
-        try:
+    try:
+        if encoding == "notation":
             rendered = pretty(selection.document, limits=notation_limits)
-            encoding_check["bytes"] = len(rendered.encode("utf-8"))
-        except p.LimitError as error:
-            encoding_check.update(complete=False, bytes=None, reason=str(error))
+        else:
+            rendered = format_document(selection.document)
+            if native(rendered) != selection.document:
+                raise AssertionError("native delivery roundtrip failed")
+        encoding_check["bytes"] = len(rendered.encode("utf-8"))
+    except p.LimitError as error:
+        encoding_check.update(complete=False, bytes=None, reason=str(error))
     result = {
         "version": VERSION, "profile": "working/1", "collection": index.collection,
         "source_snapshot": index.snapshot, "requested_ids": list(selection.requested_ids),

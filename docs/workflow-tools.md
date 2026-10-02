@@ -29,7 +29,9 @@ source snapshot and seeds. It contains these measurements:
 
 Canonical bytes include one LF per root. JSON byte counts use Unicode directly,
 compact separators and a final LF. They are not token counts. Both encodings use
-the same complete records. No tokenizer or graph-analysis dependency is installed.
+the same complete records and check that their corresponding reader accepts the
+complete spelling. A Python-built native document can exceed the source-reader
+limit even when its profile size is valid. No tokenizer or graph-analysis dependency is installed.
 
 Each distinct source-target pair counts once in `reference_edges`, even when it
 occurs more than once or has several roles. `dependency_edges` counts the subset

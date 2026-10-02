@@ -62,6 +62,15 @@ class SelectionDiagnosticTests(unittest.TestCase):
         self.assertEqual(success["encoding_check"]["bytes"], len(pretty(self.document[:2]).encode()))
         self.assertNotIn("records", success)  # This is not a partial content packet.
 
+    def test_native_capacity_checks_the_actual_reader(self):
+        # Python construction can exceed the native source-reader cap even when
+        # the profile permits the number of nodes and canonical bytes.
+        document = (p.application("record", (Term("A"), Term("Note"), p.text("x" * 2_000_000))),)
+        result = diagnose(build_index(document, collection="large"), ("A",))
+        self.assertFalse(result["encoding_check"]["complete"])
+        self.assertIsNone(result["encoding_check"]["bytes"])
+        self.assertIn("source", result["encoding_check"]["reason"])
+
     def test_report_and_content_bounds_fail_without_truncation(self):
         result = diagnose(self.index, ("B",))
         n = len(wire(result))
