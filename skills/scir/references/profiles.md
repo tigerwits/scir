@@ -5,6 +5,11 @@ format remains 1.0; these commands require package 1.1 or later. Do not install,
 migrate files or enable notation merely because a file extension suggests it.
 Use an explicit consumer contract and preserve the project's vocabulary.
 
+For a first use, run the bundled [in-memory example](../scripts/working_example.py)
+with that interpreter. It exercises lowering, scoped selection, dependency review,
+a guarded candidate and stale rejection without writing files or calling services.
+It is fixture execution, not an agent trial or an installation command.
+
 ## Author only the structure that helps
 
 `f(a,b)` has two arguments; `f((a,b))` has one tuple argument. `(a)` groups,
@@ -60,6 +65,10 @@ fields. Values use canonical native term strings. Stale snapshots and conflictin
 operations fail. The result is a validated candidate, not an in-place file update,
 authorization, or a database transaction. Run stronger project checks before the
 host atomically commits its precondition and write.
+
+A generic snapshot covers SCIR content only. When decisions depend on other files
+or a live service, use that host's input-basis guard and source-owned write plan.
+Never substitute a SCIR content digest for a service's exact request coordinates.
 
 Do not apply a content edit back through aliases automatically: changing a shared
 definition and changing one use are different requests. Keep either authored

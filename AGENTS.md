@@ -29,6 +29,9 @@ Repository `knowledge propose --basis DIGEST --change FILE` requires the inspect
 selection's input-basis digest, validates local contracts and returns a source-owned
 write plan. Read [handoffs](spec/HANDOFF.md); never refresh a stale guard without
 reviewing changed inputs. Proposals do not persist or automatically approve changes.
+For a first use or a handoff change, run `python tools/check_self_host.py` and read
+[the executable self-use example](docs/self-hosting.md). It touches only a disposable
+copy and verifies the original inputs; it is not a production transaction recipe.
 
 ## Authored prose and working knowledge
 
@@ -59,6 +62,7 @@ Install the checkout or set `PYTHONPATH=src`, then run:
 ```bash
 python spec/check.py
 python -m unittest discover -s tests -v
+python tools/check_self_host.py
 python tools/check_properties.py
 python tools/study_corpus.py
 python examples/dialects.py

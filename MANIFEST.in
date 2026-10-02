@@ -4,6 +4,6 @@ recursive-include examples *.scir *.scix *.py *.txt *.md
 recursive-include tests *.py
 recursive-include tools *.py
 global-exclude __pycache__ *.py[cod]
-recursive-include skills *.md LICENSE
+recursive-include skills *.md *.py LICENSE
 recursive-include spec *.md *.py *.scir
 recursive-include proofs *.lean *.md lean-toolchain

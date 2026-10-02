@@ -27,13 +27,20 @@ It requires Python 3.10+. Install only from an approved source with permission.
 If unavailable and installation is forbidden, stop discovery: drafting can
 continue, but deterministic checks are not run.
 
+When adopting the optional 1.1 profiles, read [working-profile migration](references/working.md).
+It defines text, named roles, tuples, references, source ownership and guarded
+handoffs. Keep existing dialects and service authority boundaries unless the user
+explicitly authorizes their migration. Do not substitute a local SCIR store for
+accepted knowledge owned by another service.
+
 ## Build the working content
 
 Choose units that can change independently. Preserve who asserted a claim, its
 conditions, time context, evidence, status, and unresolved information. Keep an
 assumption distinct from a conclusion, a proposal from a decision, and a checked
 result from a plan to check. Store useful explicit rationale, not repetitive
-retellings. Prose can stay inside a quoted label when decomposition adds no value.
+retellings. Use exact text in structured/1; preserve existing quoted-label prose
+when the project retains its native dialect.
 
 Write `head(arguments)` and bare leaves, never empty calls. Quote labels with JSON
 string syntax; numeric-looking labels are strings. Unquoted `?x` and `?_` belong
