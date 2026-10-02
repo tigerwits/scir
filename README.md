@@ -11,6 +11,19 @@ at every handoff.
 The kernel keeps composition explicit and vocabulary open. Project contracts
 can impose stronger rules without replacing the representation.
 
+## Choose a starting point
+
+| Task | Start here | Executable check |
+| --- | --- | --- |
+| Use the current profiles in another project | [Portable consumer skill](skills/scir/SKILL.md) | `python skills/scir/scripts/working_example.py` |
+| Migrate existing knowledge deliberately | [Migration skill](skills/scir-migrate/SKILL.md) | Follow the source-ownership and project-check rules |
+| Maintain SCIR itself | [Contributor workflow](AGENTS.md) and [self-use walkthrough](docs/self-hosting.md) | `python tools/check_self_host.py` |
+
+Run examples with the approved installed package. The consumer example writes no
+files. The self-use walkthrough runs real repository commands and replays only in
+a disposable copy. CI also runs both from the source distribution outside the
+checkout; neither example installs a provider skill or changes accepted service state.
+
 ## Write for humans; keep the working detail
 
 Markdown can be authored: a clear introduction, a design story, a short handoff.
@@ -23,6 +36,10 @@ record(A1, Assumption, deterministic(Handlers))
 record(P1, Proposal, unapproved(checkpointRecovery))
 dependsOn(P1, A1)
 ```
+
+This snippet uses the custom dialect in the linked knowledge examples, not the
+standard `working/1` profile. Use the consumer example above for native supported
+record references and guarded updates; generic roots do not acquire those semantics.
 
 An overview can explain why checkpoint recovery is being considered. An agent can
 query what the proposal depends on. A dependency checker can identify it for
