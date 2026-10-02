@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.1.0 — 2026-10-02 (source implementation)
+
+Additive profiles and working-knowledge tools; native content format remains 1.0.
+This source version does not itself publish a release or migrate existing files.
+
+- Optional structured/1 tuple, exact-text, local-reference and canonical named-role
+  codecs over unchanged native Terms. Ordinary call arity remains significant.
+- Optional notation/1 lowering and checked explicit printing, with bounded lexical
+  prefix aliases, ground abbreviations and fixed arithmetic/1 spelling.
+- Immutable working/1 record validation/indexing, whole-record reference-closed
+  selection, and separate reverse-dependency review impact.
+- Strict scir-change/1 requests and snapshot-guarded, all-or-nothing candidate
+  construction. No in-place writes, persistence, execution or authorization.
+- Explicit lower and knowledge check/select/affected/propose CLI commands; existing
+  commands retain their syntax, output and exit behavior.
+- Profile contracts, public API guidance, portable consumer reference and a runnable
+  dual-notation example with independent native expected content.
+- Native source-byte sentinels, generated and exhaustive finite law tests, a small
+  separate Lean closure/tree model, cross-platform distribution checks and measured
+  synthetic payload/workflow envelopes. These do not establish agent task quality.
+
 ## 1.0.0 — 2026-09-12
 
 Initial release baseline with a stable 1.x contract.

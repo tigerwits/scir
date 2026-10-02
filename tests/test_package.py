@@ -28,7 +28,8 @@ class PackageTests(unittest.TestCase):
                   if isinstance(node, ast.Assign)
                   and any(isinstance(t, ast.Name) and t.id == "__version__" for t in node.targets)]
         self.assertEqual(values, [scir.__version__])
-        self.assertEqual(scir.__version__, "1.0.0")
+        # Package additions do not change the native content/transport version.
+        self.assertEqual(scir.__version__, "1.1.0")
         self.assertEqual(FORMAT_VERSION, "1.0")
         self.assertEqual(VERSION, f"scir-relations/{FORMAT_VERSION}")
         metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

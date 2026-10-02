@@ -3,6 +3,8 @@
 This is the normative structural contract. “MUST” and “MUST NOT” state format
 requirements. The reference Python API is described separately in
 [docs/api.md](docs/api.md). Neither document assigns truth conditions to vocabulary.
+Additive opt-in profiles have their own [contract](docs/structured-profiles.md) and
+[API](docs/profiles-api.md); they do not change the native rules below.
 
 The marked query/occurrence paragraphs below are generated from
 [the maintained SCIR records](spec/requirements.scir). Edit those records, then
@@ -232,7 +234,7 @@ Document shape, not truth, source fidelity, or a complete resource audit.
 
 ## Versioning and compatibility
 
-The package version is `1.0.0`; the format identifier is `1.0`.
+The package version is `1.1.0`; the format identifier is `1.0`.
 
 Within format 1.0, the content grammar, canonical UTF-8 representation, digest
 domain, and relational envelope have the behavior specified here. Equivalent
@@ -240,8 +242,9 @@ valid content MUST keep the same canonical bytes and fingerprint. A change to
 those rules requires a new format identifier; a decoder rejects unsupported
 identifiers rather than guessing their meaning.
 
-Within package 1.x, the documented API in [docs/api.md](docs/api.md), its return
-record fields, and the documented CLI behavior are the compatibility surface.
+Within package 1.x, the documented APIs in [docs/api.md](docs/api.md) and
+[docs/profiles-api.md](docs/profiles-api.md), their return record fields, and the
+documented CLI behavior are the compatibility surface.
 Compatible additions may use a minor release; bug fixes may use a patch release.
 Breaking documented behavior requires a major release. Names not documented as
 public, private helpers, incidental exception wording, and benchmark timings

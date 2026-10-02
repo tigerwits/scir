@@ -57,7 +57,11 @@ def main(argv=None) -> int:
             p.add_argument("--pattern", required=True)
             p.add_argument("--scope", choices=("roots", "all"), default="roots")
             p.add_argument("--contains", help="filter matches by exact symbol occurrence")
+    from ._profile_cli import register, execute
+    register(sub)
     args = parser.parse_args(argv)
+    if args.command in ("lower", "knowledge"):
+        return execute(args, _write)
     try:
         if args.file == "-":
             text = _read(sys.stdin)

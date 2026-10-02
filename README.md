@@ -102,9 +102,10 @@ See the [worked cases](examples/knowledge/README.md) for expected results.
 Installing from source may download build dependencies.
 
 The distribution is `symbolic-content-ir`; the import and command are `scir`.
-Download a wheel or source archive from the
-[v1.0.0 release](https://github.com/tigerwits/scir/releases/tag/v1.0.0).
-It is **not published to PyPI**. Do not install the unrelated distribution `scir`.
+The [v1.0.0 release](https://github.com/tigerwits/scir/releases/tag/v1.0.0) supplies
+the original baseline. Use the source checkout for the new 1.1 profiles described
+below; this change does not publish a new release artifact. The distribution is
+**not published to PyPI**. Do not install the unrelated distribution `scir`.
 
 **Using an agent?** Install the [portable SCIR skill](skills/scir/SKILL.md) with the
 [setup guide](docs/agents.md). It teaches drafting, queries, edits, and dialect
@@ -151,6 +152,38 @@ reference checks, composition, and failure handling. The [dialect chain](example
 keeps a source fixed while adding vocabulary, record, and reference constraints.
 It also shows when a stricter contract must be blocked rather than filled by guessing.
 
+## Optional notation and working knowledge
+
+Package 1.1 adds opt-in profiles without changing native format 1.0. In explicitly
+selected `notation/1`, tuples, named roles, text and references are available:
+
+```text
+record(A1, Assumption, idempotent(handler), status: unverified)
+record(T1, Task, send(doc, from: alice, to: bob), dependsOn: (&A1,))
+note(t"The assumption still needs evidence.")
+```
+
+That fragment is generic structured notation, not a complete working/1 collection:
+the working profile requires record roots. `f(a,b)` still differs from `f((a,b))`.
+Aliases and ground abbreviations are optional; arithmetic is a fixed, explicitly
+selected spelling profile and does not evaluate expressions.
+
+```bash
+python examples/working-profile/run.py
+python -m scir lower examples/working-profile/notes.scix
+python -m scir knowledge select examples/working-profile/notes.scir --collection example --id T1
+python -m scir knowledge affected examples/working-profile/notes.scir --collection example --changed A1
+```
+
+The [runnable profile example](examples/working-profile/run.py) retains complete
+context and constructs a snapshot-guarded candidate without writing source files.
+Selection closes declared local references; review impact follows only dependsOn.
+Changes validate a whole candidate, not a database transaction or authorization.
+
+Read the [profile contract](docs/structured-profiles.md), [Python/CLI API](docs/profiles-api.md),
+and [adoption guidance](docs/profile-adoption.md) before enabling a profile. Existing
+native content is not silently reinterpreted or migrated. Exact text can remain text.
+
 ## CLI
 
 ```bash
@@ -162,7 +195,8 @@ python -m scir encode examples/document.scir | python -m scir decode
 
 Output goes to stdout, errors to stderr. Commands never rewrite input files.
 `fmt --check` returns 0 for canonical input, 1 for differences, and 2 for errors.
-The CLI checks structure, not project constraints.
+Native `check` checks structure, not project constraints. The new explicit profile
+commands have separately documented validation and failure contracts.
 
 ## Further reading
 
@@ -174,7 +208,7 @@ also covers annotations, alternatives, and relational transport.
 [Research](docs/research/README.md) · [Changelog](CHANGELOG.md) · [Contributing](AGENTS.md) ·
 [Releasing](docs/releasing.md) · [Security](SECURITY.md)
 
-Format **1.0**; implementation **1.0.0**.
+Format **1.0**; implementation **1.1.0**.
 [Compatibility](SPEC.md#versioning-and-compatibility) covers the documented API
 and format. Structural correctness does not establish truth, translation fidelity,
 or improved agent performance. Licensed under [MIT](LICENSE).

@@ -1,0 +1,64 @@
+"""Build/install smoke checks outside the checkout; no runtime test dependencies."""
+from pathlib import Path
+import json
+import os
+import subprocess
+import sys
+import tarfile
+import tempfile
+import zipfile
+
+
+def run(*args, **kwargs):
+    subprocess.run([sys.executable, '-m', 'pip', *args], check=True, **kwargs)
+
+
+def package_bytes(wheel):
+    with zipfile.ZipFile(wheel) as archive:
+        return {name: archive.read(name) for name in archive.namelist() if name.startswith('scir/')}
+
+
+def main():
+    root = Path(__file__).resolve().parents[1]
+    wheels, archives = list((root/'dist').glob('*.whl')), list((root/'dist').glob('*.tar.gz'))
+    if len(wheels) != 1 or len(archives) != 1:
+        raise ValueError('build exactly one wheel and one source distribution first')
+    required = {'profile.py', 'knowledge.py', 'changes.py', 'notation.py', '_profile_cli.py'}
+    content = package_bytes(wheels[0])
+    assert all('scir/'+name in content for name in required)
+    with tarfile.open(archives[0]) as archive:
+        names = {name.partition('/')[2] for name in archive.getnames() if '/' in name}
+        assert {'proofs/ProfileLaws.lean', 'proofs/lean-toolchain', 'docs/profiles-api.md',
+                'examples/working-profile/notes.scix', 'tools/study_profiles.py'} <= names
+    with tempfile.TemporaryDirectory() as temp:
+        workspace = Path(temp)
+        rebuilt = workspace/'rebuilt'
+        rebuilt.mkdir()
+        run('wheel', '--no-deps', str(archives[0]), '--wheel-dir', str(rebuilt), cwd=workspace)
+        rebuilt_wheel, = rebuilt.glob('*.whl')
+        assert package_bytes(rebuilt_wheel) == content
+        for number, wheel in enumerate((wheels[0], rebuilt_wheel)):
+            site = workspace/f'site{number}'
+            run('install', '--no-deps', '--target', str(site), str(wheel), cwd=workspace)
+            env = dict(os.environ, PYTHONPATH=str(site), PYTHONDONTWRITEBYTECODE='1')
+            smoke = '''import json, pathlib, scir
+from scir.notation import lower
+from scir.knowledge import build_index, select
+from scir.changes import propose
+assert pathlib.Path(scir.__file__).resolve().is_relative_to(pathlib.Path(__import__('sys').argv[1]).resolve())
+assert scir.FORMAT_VERSION == "1.0"
+doc = lower('record(A, Note, t"literal")')
+index = build_index(doc, collection="installed")
+assert select(index, ("A",)).document == doc
+request = json.dumps({"version":"scir-change/1", "collection":"installed", "expected_snapshot":index.snapshot, "operations":[]})
+assert propose(index, request).document == doc
+print(json.dumps({"package":scir.__version__,"installed_from":scir.__file__,"checked":True}))
+'''
+            subprocess.run([sys.executable, '-c', smoke, str(site)], cwd=workspace, env=env, check=True)
+            subprocess.run([sys.executable, '-m', 'scir', 'lower', '--operators', 'arithmetic/1'],
+                           input=b'a+b', cwd=workspace, env=env, check=True)
+    print(json.dumps({'wheel': 'pass', 'rebuilt_sdist': 'pass', 'outside_checkout': True}))
+
+
+if __name__ == '__main__':
+    main()
