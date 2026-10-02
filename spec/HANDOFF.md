@@ -78,3 +78,16 @@ or runtime pin. Checking first and writing later is not an atomic transaction.
 Revalidate content and derived freshness after persistence. These tools deliberately
 do not apply a sequence of in-place writes or resolve source-edit conflicts.
 The temporary test replay is a fixture, not a production transaction recipe.
+
+## Optional delivery views
+
+`knowledge select` and `knowledge propose` also accept `--view compact` with an
+explicit optional `--encoding native|notation`. The packet retains the input-basis
+digest; proposals retain the commit-basis digest too. The complete file bases and
+source-owned write plan remain in a retrievable, hash-bound artifact. Use
+`--view artifact --expected-artifact HASH` with the same request to generate and
+check that artifact. Changed inputs produce a conflict, not a fresh silent result.
+The original full response remains the default. A proposal delta is not complete
+context and must not be saved over an authoritative shard. Review the complete
+plan before applying it. Presentation runs before the final input-basis check.
+See [delivery rules and costs](../docs/workflow-tools.md) for exact boundaries.

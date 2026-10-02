@@ -69,3 +69,104 @@ Diagnostics do not find a minimal explanation or prove semantic completeness.
 A chain can require the whole collection. Use measured size and declared paths to
 review the authoring structure; do not delete necessary links to improve a score.
 The index stays immutable. Each call computes a fresh report without a cache.
+
+## Optional delivery views
+
+Use `scir.delivery.selection(index, identifiers, ...)` for complete selected
+records. Use `scir.delivery.proposal(index, request, ...)` for a labelled change
+summary and its complete candidate artifact. Both return an immutable `Delivery`
+with two UTF-8 JSON strings: `packet` and `artifact`. They write no file or cache.
+The caller can retain the artifact in an approved store or generate it again.
+There is no implicit network lookup or persistence layer.
+
+Both APIs accept these keyword arguments:
+
+| Argument | Default and purpose |
+| --- | --- |
+| `encoding` | `"native"`; or explicitly `"notation"` |
+| `guards` | `()`; an immutable tuple of unique host name/value string pairs |
+| `limits` | `profile.Limits()`; complete selected/candidate content bounds |
+| `max_records` | `10000`; the record bound |
+| `max_packet_bytes` | `16000000`; the complete packet bound |
+| `max_artifact_bytes` | `16000000`; the complete artifact bound |
+| `notation_limits` | `notation.Limits()`; used only for explicit notation delivery |
+
+The proposal API also accepts `max_operations=1024` and
+`max_request_bytes=1000000`, as in the original change API. Host guards have a
+128-pair and 64,000 UTF-8 name/value byte bound. A guard is opaque host input:
+SCIR does not check its authenticity or use it to authorize an operation.
+
+`scir-delivery/1` packets retain collection, profile, encoding, source/candidate
+fingerprints and host guards. Selected records retain every field and reference,
+including scope, status and evidence. A full record is never replaced by a short
+summary. Detailed inclusion reasons are in the `scir-delivery-artifact/1` artifact.
+It contains the full original response and the same host guards. The packet gives
+its exact SHA-256 and byte count. Hashes identify bytes; they are not signatures.
+
+Proposal packets contain changed/new records and explicit deleted IDs. They state
+`content_scope: "changed-records"` and `context_complete: false`. They are not
+standalone working collections: an unchanged prerequisite can be outside the
+delta. All changes are checked against the original snapshot and the full
+candidate is validated before a response is returned. The full candidate and
+request remain in the artifact. An empty delta is possible for a valid no-op.
+
+The complete artifact must fit its own bound even when only the packet will be
+sent. No successful packet promises an artifact that failed construction. Native
+and notation output are checked through their actual readers. Failure does not
+change the encoding or remove context. Existing `select()` and `propose()` retain
+their original response schema, full response bound and default behavior.
+
+```python
+import json
+from scir.delivery import selection
+from scir.knowledge import build_index
+from scir.notation import lower
+
+index = build_index(lower('record(A, Note, t"Retain the scope.")'), collection="example")
+result = selection(index, ("A",), encoding="notation")
+packet = json.loads(result.packet)
+assert lower(packet["content"]) == index.document
+assert result.checked_artifact(packet["artifact"]["sha256"]) == result.artifact
+```
+
+`checked_artifact(expected_sha256)` requires a lowercase 64-digit SHA-256.
+A mismatch is a conflict. Callers must verify this value when retrieving a stored
+artifact or generating it again. Changing content, collection or host guards can
+change the artifact identity. Do not bypass a mismatch by replacing the hash.
+
+### CLI views
+
+The runtime `knowledge select` and `knowledge propose` commands accept
+`--view full|compact|artifact`. The default is `full` and remains unchanged.
+`--encoding native|notation` requires an explicit compact or artifact view.
+An artifact view requires `--expected-artifact HASH`; other views forbid it.
+`--max-output-bytes` bounds stdout; `--max-artifact-bytes` separately bounds the
+constructed artifact. Every failure leaves stdout empty and uses the existing
+rejection, conflict or incomplete-processing diagnostic on stderr.
+
+```sh
+python -m scir knowledge select examples/working-profile/notes.scir --collection example --id T1 --view compact --encoding notation
+# HASH is artifact.sha256 from the inspected packet. Use the same source and IDs.
+python -m scir knowledge select examples/working-profile/notes.scir --collection example --id T1 --view artifact --expected-artifact "$HASH"
+```
+
+The repository `spec/check.py knowledge select/propose` commands expose the same
+view choice. They retain their stronger input-basis guards. Compact packets carry
+`guards.input_basis`; proposals also carry `guards.commit_basis`. The full basis,
+record-to-source membership and source-owned write plan remain in the artifact.
+The adapter checks the observed input basis again after presentation. Repository
+commands retain their 16 MB response/artifact bounds; runtime budget flags do not
+apply there. Read [the handoff contract](../spec/HANDOFF.md) before persistence.
+
+## Complete cost accounting
+
+`python tools/study_delivery.py --output .build/delivery-study` measures public
+synthetic independent, modular and fully linked collections. It checks selected
+content and full candidates, and retains each exact response with its hash.
+The report includes the original response, compact packet, complete artifact and
+packet-plus-artifact byte costs. It has no tokenizer or model calls.
+
+A compact packet can be larger for a small selection. Requesting both packet and
+artifact can cost more than the original full response. Measure actual fetches,
+requests and host metadata before making an efficiency claim. These examples do
+not establish agent performance or make an audit fetch free.
