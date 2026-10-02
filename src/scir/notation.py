@@ -14,7 +14,9 @@ _NAME = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*")
 _SEGMENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]*")
 _NUMBER = re.compile(r"[0-9]+(?:\.[0-9]+)?")
 _STRING = re.compile(r'"(?:\\[^\n]|[^"\\\n])*"')
-
+_ARITHMETIC = (("+", "plus", "chain", 50), ("-", "sub", "left", 50),
+               ("-", "neg", "prefix", 65), ("*", "mul", "chain", 60),
+               ("/", "div", "left", 60), ("^", "power", "right", 70))
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,10 +39,10 @@ class Limits:
 
 
 def environment_digest(operators: str | None = None) -> str:
-    if operators is not None:
+    if operators not in (None, "arithmetic/1"):
         raise ValueError("unknown fixed notation profile")
     value = {"notation": VERSION, "structured": p.VERSION,
-             "operators": None, "table": ()}
+             "operators": operators, "table": _ARITHMETIC if operators else ()}
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                     separators=(",", ":")).encode("utf-8")).hexdigest()
 
@@ -68,6 +70,8 @@ class _Parser:
         if len(source) > limits.source_bytes or len(source.encode("utf-8")) > limits.source_bytes:
             raise p.LimitError("notation source byte budget exceeded")
         self.source, self.limits = source, limits
+        self.prefix = {row[0]: row for row in _ARITHMETIC if row[2] == "prefix"} if operators else {}
+        self.following = {row[0]: row for row in _ARITHMETIC if row[2] != "prefix"} if operators else {}
         self.aliases, self.values = {}, {}
         self.declarations = 0
         self.tokens, self.index = self.lex(), 0
@@ -111,6 +115,8 @@ class _Parser:
                 match = _NAME.match(self.source, position) or _NUMBER.match(self.source, position)
                 if match:
                     kind, value, position = "name", match.group(), match.end()
+                elif char in self.prefix or char in self.following:
+                    kind, value, position = "operator", char, position + 1
                 else:
                     self.fail("unsupported notation token", start)
             tokens.append(_Token(kind, value, start))
@@ -214,20 +220,49 @@ class _Parser:
             if self.current.kind == "(":
                 self.fail("ground abbreviations are not callable heads")
             return self.values[token.value]
+        if token.kind == "operator" and token.value in self.prefix:
+            op = self.prefix[token.value]
+            self.newlines()
+            return self.node(op[1], [self.expr(op[3], nesting + 1)], token.position)
         if token.kind in ("name", "symbol"):
             head = self.qualify(token.value) if token.kind == "name" else token.value
             if head in p.RESERVED:
                 self.fail("use tuple/text/reference syntax for profile tags", token.position)
+        elif token.kind == "operator" and self.current.kind == "(" and token.value in self.following:
+            head = self.following[token.value][1]
         else:
             self.fail("expected an expression", token.position)
         if self.current.kind == "(":
             return self.items(head, token.position, nesting)
         return self.node(head, [], token.position)
 
-    def expr(self, nesting: int = 0) -> _Value:
+    def expr(self, minimum: int = 0, nesting: int = 0, inherited=None) -> _Value:
         if nesting > self.limits.depth:
             raise p.LimitError("notation parser depth exceeded")
-        return self.atom(nesting)
+        left, previous = self.atom(nesting), None
+        while self.current.kind == "operator":
+            op = self.following.get(self.current.value)
+            if op is None or op[3] < minimum:
+                break
+            for adjacent in (previous, inherited):
+                if adjacent and adjacent[3] == op[3] and adjacent[0] != op[0]:
+                    self.fail("mixed same-precedence operators require parentheses")
+            position = self.current.position
+            if op[2] == "chain":
+                children = [left]
+                while self.current.kind == "operator" and self.current.value == op[0]:
+                    self.take()
+                    self.newlines()
+                    children.append(self.expr(op[3] + 1, nesting + 1))
+                left = self.node(op[1], children, position)
+            else:
+                self.take()
+                self.newlines()
+                right = self.expr(op[3] + int(op[2] != "right"), nesting + 1,
+                                  op if op[2] == "right" else None)
+                left = self.node(op[1], [left, right], position)
+            previous = op
+        return left
 
     def declaration(self) -> None:
         directive = self.take()
