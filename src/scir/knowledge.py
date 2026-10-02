@@ -174,3 +174,25 @@ def select(index: Index, identifiers: tuple[str, ...], *,
     if len(wire.encode("utf-8")) > limits.bytes:
         raise p.LimitError("selection packet byte budget exceeded")
     return result
+
+
+def affected(index: Index, changed: tuple[str, ...], *,
+             max_records: int = 10_000, max_bytes: int = 16_000_000) -> tuple[str, ...]:
+    """Review candidates along reverse dependsOn edges; not a truth judgment."""
+    from collections import deque
+    import json
+    seeds = _ids(index, changed, max_records)
+    _positive(max_bytes, "max_bytes")
+    seen, queue = set(seeds), deque(seeds)
+    while queue:
+        if len(seen) > max_records:
+            raise p.LimitError("review record budget exceeded")
+        for dependent in index.dependents[queue.popleft()]:
+            if dependent not in seen:
+                seen.add(dependent)
+                queue.append(dependent)
+    result = tuple(i for i in index.records if i in seen)
+    wire = json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n"
+    if len(wire.encode("utf-8")) > max_bytes:
+        raise p.LimitError("review output byte budget exceeded")
+    return result
