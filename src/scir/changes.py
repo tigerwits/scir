@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import json
 import re
 from .core import Document, Term, check_symbol
-from .syntax import parse
+from ._profile_native import native
 from . import profile as p
 from .knowledge import Index, VERSION as WORKING_VERSION, _positive, _record, build_index
 
@@ -68,7 +68,7 @@ def _term(source: str, limits: p.Limits) -> Term:
         raise ChangeError("term values must be canonical native SCIR strings")
     if len(source.encode("utf-8")) > limits.bytes:
         raise p.LimitError("term byte budget exceeded")
-    result = parse(source, max_nodes=limits.nodes, max_depth=limits.depth)
+    result = native(source, one=True, max_nodes=limits.nodes, max_depth=limits.depth)
     p.validate((result,), limits=limits)
     if str(result) != source:
         raise ChangeError("term value is not canonical native SCIR")
@@ -87,8 +87,10 @@ def read_request(source: str, *, max_bytes: int = 1_000_000,
         raise p.LimitError("request byte budget exceeded")
     try:
         obj = json.loads(source, object_pairs_hook=_object, parse_constant=_constant)
-    except (json.JSONDecodeError, RecursionError) as error:
-        raise ChangeError("invalid or excessively nested JSON request") from error
+    except RecursionError as error:
+        raise p.LimitError("JSON request nesting exceeds decoder bounds") from error
+    except json.JSONDecodeError as error:
+        raise ChangeError("invalid JSON request") from error
     required = {"version", "collection", "expected_snapshot", "operations"}
     if type(obj) is not dict or set(obj) != required or obj["version"] != VERSION:
         raise ChangeError("expected the exact scir-change/1 envelope")

@@ -51,27 +51,19 @@ def _read_file(path: str, maximum: int) -> str:
 
 def execute(args, write) -> int:
     from .core import format_document
-    from .syntax import ParseError, parse_document
+    from ._profile_native import native, failure
     from . import profile as p
     from .knowledge import VERSION, build_index, select, affected
-    from .changes import ConflictError, propose
-    from .notation import lower
+    from .changes import propose
     try:
         if args.command == "lower":
+            from .notation import lower
             output = format_document(lower(_read_file(args.file, 64_000), operators=args.operators))
         else:
             if args.operation == "propose" and args.file == args.change == "-":
                 raise p.ProfileError("document and change request cannot both consume stdin")
             source = _read_file(args.file, 16_000_000)
-            if len(source) > 2_000_000:
-                raise p.LimitError("native parser source limit exceeded")
-            try:
-                document = parse_document(source)
-            except ParseError as error:
-                # Adapt the unchanged 1.0 parser's two bounded-failure messages.
-                if str(error).startswith(("expression resource limit exceeded", "source exceeds")):
-                    raise p.LimitError(str(error)) from error
-                raise
+            document = native(source)
             index = build_index(document, collection=args.collection, max_records=args.max_records)
             if args.operation == "check":
                 result = {"profile": VERSION, "collection": index.collection,
@@ -94,12 +86,7 @@ def execute(args, write) -> int:
                 raise p.LimitError("complete response exceeds the output budget")
         write(sys.stdout, output)
         return 0
-    except (p.LimitError, OSError, RecursionError) as error:
-        diagnostic = {"error": "incomplete", "complete": False, "message": str(error)}
+    except (ValueError, OSError, RecursionError) as error:
+        code, diagnostic = failure(error)
         write(sys.stderr, json.dumps(diagnostic, ensure_ascii=True, separators=(",", ":")) + "\n")
-        return 2
-    except ValueError as error:
-        diagnostic = {"error": "conflict" if isinstance(error, ConflictError) else "rejected",
-                      "complete": True, "message": str(error)}
-        write(sys.stderr, json.dumps(diagnostic, ensure_ascii=True, separators=(",", ":")) + "\n")
-        return 1
+        return code
