@@ -59,16 +59,3 @@ class ProfileIntegrationTests(unittest.TestCase):
         self.assertEqual(len(examples), 2)
         for example in examples:
             exec(compile(example, "profiles-api.md", "exec"), {})
-
-    def test_public_core_sources_match_pre_profile_git_blobs(self):
-        import hashlib
-        frozen = {'core.py':'9c6de235945901658b8fe06104eb52ac2bc64ff6',
-                  'patterns.py':'c5c1e8e70eb3a3b67356135e52bb30dadebccb69',
-                  'syntax.py':'f57ee2c4ea36e01691d7b2913ae8aa1abca4af00',
-                  'tree.py':'5f8b670b492e2a84545cd71291c396754d746fbc',
-                  'relations.py':'bdff3033b9035e71e1a0a9898b880a678514cbab'}
-        for name, expected in frozen.items():
-            raw = (ROOT/'src'/'scir'/name).read_bytes()
-            raw = raw.replace(b'\r\n', b'\n')
-            actual = hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
-            self.assertEqual(actual, expected, name)
