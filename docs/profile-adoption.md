@@ -36,10 +36,35 @@ references; it cannot prove that all relevant evidence and dependencies were nam
 Guard changes against the full source snapshot. The host owns policy, authorization,
 persistent revision history and atomic commits. No tool here performs those actions.
 
+## Policy and context boundaries
+
+A parsed record can still contain a wrong role, unsupported completion claim or
+incorrect scope. Apply the consumer's trusted rules after `working/1` checks.
+Keep policy code separate from input content. Do not make a status string or
+represented evidence act as an authorization grant or execution receipt.
+
+Selecting a historical record does not find its future replacements. Define
+supersession queries in the consumer. Conflicting replacements and cycles need
+an explicit result, not an arbitrary newest-record choice. A content fingerprint
+also cannot detect an A-to-B-to-A history; a host that needs this guarantee must
+supply a persistent revision token.
+
+Selection helps when records have separable context. A complete dependency chain
+can require all records. Measure full serialized packets, including audit detail,
+not only selected record counts. JSON and Markdown can use the same selection and
+update guarantees; do not attribute all workflow savings to SCIR punctuation.
+
+Maintain native content when complete authored notation exceeds its explicit
+limits. Select the whole required context before producing a bounded presentation.
+A failed encoding is incomplete delivery, not a zero-cost success. Small selected
+packets can fit even when a full notation document cannot. Never truncate a chain
+of prerequisites to pass a size test.
+
 ## Verification and evaluation
 
-The native source-byte sentinel protects the unchanged core, parser, matching,
-traversal and relational codecs. CI runs original regression tests and additional
+The historical source-byte check verifies the recorded baseline revision, not
+current implementation files. Current compatibility is checked through native
+format, fingerprint, query and transport expectations. CI runs those tests and additional
 profile tests on supported Python versions, plus new workflow checks on Linux,
 macOS and Windows. A source distribution is rebuilt outside the checkout and its
 installed package contents are compared with the directly built wheel.

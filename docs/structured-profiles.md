@@ -148,6 +148,27 @@ Review impact is separate: a changed record and every transitive reverse
 `dependsOn` dependent need review. General citations are not dependency edges.
 Neither operation infers facts or mutates knowledge.
 
+## Consumer boundaries
+
+Selection follows references from the requested record. It does not search for
+records that point to that record. Thus, selecting an old record does not find a
+newer record that supersedes it. A consumer must define how to resolve competing
+replacements, cycles, approval and scope. The generic profile permits these data;
+it does not decide which record is effective. Review uses only `dependsOn` edges,
+not citations or `supersedes` edges.
+
+A valid field value such as `status: completed` is not proof of completion. A
+consumer must check its required evidence and authorization. A record that names
+a successful test is not an authenticated execution receipt. The host must check
+trusted receipts when that distinction matters.
+
+Choose a transport after selecting complete context. A native collection can fit
+its limits while its full notation spelling does not. A small selection may fit;
+a selection that needs the whole collection may still fail. Keep that failure
+explicit. Do not drop context, raise limits or switch encodings without the
+caller's explicit choice. Closure depends on declared links, not on an automatic
+judgment of which information is sufficient for a task.
+
 ## Guarded changes
 
 `scir-change/1` is a JSON tool request with `version`, `collection`,
@@ -192,7 +213,7 @@ canonical bytes and 128 declarations. Ground expansion is preflighted before
 serialization. All public new operations have explicit aggregate limits.
 Bound failures mean incomplete work, not a truncated acceptance report.
 
-## Acceptance and implementation sequence
+## Verification
 
 Preserve native goldens and generated specification views. Add independent
 positive/negative vectors for tags, nesting, roles, bindings and combinations.
@@ -201,12 +222,11 @@ extensivity/idempotence/minimality, cycle termination, stale change rejection,
 whole-candidate validation and unchanged unrelated records. Any proof model must
 state its relation to (and limitations relative to) the Python implementation.
 
-Implement in five independently reviewed PRs: structured codecs; working index,
-selection and impact; guarded changes; optional notation; integration, proof
-model and evaluations. Use small commits with tests. Existing tests, properties,
-examples, spec freshness, packaging and exact-head CI gate merges. Do not change
-existing expected values to hide regressions. No release publication or production
-knowledge migration follows from this implementation authorization.
+Use small commits with tests. Existing tests, properties, examples, specification
+freshness, packaging and exact-head CI gate merges. Do not change expected values
+to hide regressions. The completed implementation sequence is recorded in the
+[change history](../CHANGELOG.md). Passing checks does not publish a release or
+authorize a production knowledge migration.
 
 The retained private feature study supports this bounded scope, not universal
 optimality or improved agent behavior. Measure payloads and tool envelopes
