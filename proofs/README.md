@@ -19,7 +19,7 @@ parser, UTF-8 codecs, field sorting, source translation, resource bounds or data
 concurrency. Ordered output/reasons and bounded failures are tested in Python.
 Finite visited-set traversal terminates because each finite record ID is queued
 once; the executable implementation is compared with an independently implemented
-fixed-point oracle on all three-node graphs and generated larger graphs.
+fixed-point oracle on all three-node graphs and every seed set.
 
 No admission is used in this source. CI rejects admissions before invoking Lean
 and rejects unexpected assumptions afterward. The model deliberately contains no

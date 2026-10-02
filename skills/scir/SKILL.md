@@ -1,6 +1,6 @@
 ---
 name: scir
-description: Draft, query, edit, and check Symbolic Content IR. Use when working with .scir files, explicit SCIR requests, or supplied SCIR dialects.
+description: Draft, query, edit, and check Symbolic Content IR. Use when working with .scir files, explicitly selected .scix notation, explicit SCIR requests, or supplied SCIR dialects.
 ---
 
 # Use SCIR
@@ -65,6 +65,16 @@ Queries default to roots; use `scope="all"` only when nested matches are intende
 Carry the occurrence path and enclosing content into handoffs. A match inside
 `think(...)` is not evidence that the described event occurred. Edits target one
 path, require fresh checks, and invalidate old snapshot-bound annotations.
+
+## Optional notation and working collections
+
+When the project explicitly selects package 1.1 profiles, read the portable
+[profile reference](references/profiles.md). `lower` accepts notation; native
+commands do not change meaning based on a filename. Use exact text, nested tuples
+and named roles selectively. For working/1, select complete referenced context and
+propose guarded record changes. No command rewrites an input file or resolves
+alias-definition versus occurrence edits automatically. Keep generic native SCIR
+and existing project dialects unchanged unless migration is explicitly requested.
 
 ## Deliver
 

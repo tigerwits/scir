@@ -52,6 +52,14 @@ class ProfileIntegrationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertEqual(list(Path(destination).iterdir()), [])
 
+    def test_public_api_examples_execute(self):
+        import re
+        source = (ROOT/"docs"/"profiles-api.md").read_text(encoding="utf-8")
+        examples = re.findall(r"```python\n(.*?)\n```", source, re.S)
+        self.assertEqual(len(examples), 2)
+        for example in examples:
+            exec(compile(example, "profiles-api.md", "exec"), {})
+
     def test_public_core_sources_match_pre_profile_git_blobs(self):
         import hashlib
         frozen = {'core.py':'9c6de235945901658b8fe06104eb52ac2bc64ff6',
