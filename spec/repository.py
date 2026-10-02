@@ -210,15 +210,30 @@ def main(argv=None) -> int:
     change.add_argument("--change", type=Path, required=True)
     change.add_argument("--basis", required=True, help="input_basis.digest from a fresh selection")
     change.add_argument("--placements", type=Path, help="JSON mapping of newly created IDs to source shards")
+    for command in (pick, change):
+        command.add_argument("--view", choices=("full", "compact", "artifact"), default="full")
+        command.add_argument("--encoding", choices=("native", "notation"))
+        command.add_argument("--expected-artifact", help="SHA-256 from a previous compact packet")
+    diagnostic = sub.add_parser("diagnose")
+    diagnostic.add_argument("--id", action="append", required=True)
+    diagnostic.add_argument("--encoding", choices=("native", "notation"), default="native")
     args = parser.parse_args(argv)
     if args.command in (None, "check", "refresh"):
         return maintenance(write_views=args.command == "refresh")
     try:
         from scir.knowledge import select, affected
+        if args.command in ("select", "propose"):
+            if args.view == "full" and args.encoding is not None:
+                raise ProfileError("encoding requires an explicit delivery view")
+            if (args.view == "artifact") != (args.expected_artifact is not None):
+                raise ProfileError("artifact view requires its expected hash; other views forbid it")
         index = load()
         basis = handoff.capture(ROOT, index, SOURCES)
         if args.command == "select":
             result = select(index, tuple(args.id)).as_dict()
+        elif args.command == "diagnose":
+            from scir.diagnostics import diagnose
+            result = diagnose(index, tuple(args.id), encoding=args.encoding)
         elif args.command == "affected":
             result = {"collection": COLLECTION, "source_snapshot": index.snapshot,
                       "review_ids": affected(index, tuple(args.changed))}
@@ -228,11 +243,20 @@ def main(argv=None) -> int:
             placements = (json.loads(read_source(args.placements), object_pairs_hook=_object,
                                      parse_constant=_constant) if args.placements else None)
             result = propose_handoff(index, request, args.basis, ROOT, placements=placements)
+        result.setdefault("input_basis", basis.packet())
+        result["repository_contract"] = "scir-repository/1"
+        if args.command in ("select", "propose") and args.view != "full":
+            if __package__:
+                from .delivery import present
+            else:
+                from delivery import present
+            delivered = present(index, result, kind="selection" if args.command == "select" else "proposal",
+                                encoding=args.encoding or "native")
+            output = delivered.packet if args.view == "compact" else delivered.checked_artifact(args.expected_artifact)
+            result = json.loads(output)  # Preserve the exact sorted JSON order and final LF in _emit.
         if handoff.capture(ROOT, index, SOURCES) != basis:
             from scir.changes import ConflictError
             raise ConflictError("repository inputs changed during command")
-        result.setdefault("input_basis", basis.packet())
-        result["repository_contract"] = "scir-repository/1"
         _emit(sys.stdout, result)
         return 0
     except (ValueError, OSError, RecursionError) as error:
