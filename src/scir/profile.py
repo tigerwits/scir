@@ -80,7 +80,9 @@ def validate(document: Document, *, limits: Limits = Limits()) -> Size:
         elif t.symbol == KW:
             raise ProfileError("keyword container is not an expression")
         else:
-            pending.extend(reversed(t.args))
+            positional, fields = _split(t)
+            pending.extend(reversed(positional))
+            pending.extend(value for _, value in reversed(fields))
     return size
 
 
@@ -108,14 +110,76 @@ def read_reference(term: Term) -> str:
     return term.args[0].symbol
 
 
-def tuple_value(items: tuple[Term, ...] = ()) -> Term:
-    result = Term(TUPLE, items)
-    validate((result,))
+def _split(term: Term) -> tuple[tuple[Term, ...], tuple[tuple[str, Term], ...]]:
+    """Read this node only; callers validate recursively at the public boundary."""
+    args = term.args
+    if not args or args[-1].symbol != KW:
+        return args, ()
+    entries = args[-1].args
+    if not entries or any(len(e.args) != 1 for e in entries):
+        raise ProfileError("keyword entries must be nonempty unary fields")
+    keys = [e.symbol.encode("utf-8") for e in entries]
+    if any(a >= b for a, b in zip(keys, keys[1:])):
+        raise ProfileError("keyword keys must be unique and in UTF-8 order")
+    return args[:-1], tuple((e.symbol, e.args[0]) for e in entries)
+
+
+def read_fields(term: Term) -> tuple[tuple[str, Term], ...]:
+    """Return immutable named entries, not an implicit positional signature."""
+    validate((term,))
+    return () if term.symbol in (TEXT, REF) else _split(term)[1]
+
+
+def read_arguments(term: Term) -> tuple[Term, ...]:
+    validate((term,))
+    if term.symbol in RESERVED:
+        raise ProfileError("expected an ordinary application")
+    return _split(term)[0]
+
+
+def _compose(head: str, positional: tuple[Term, ...],
+             fields: tuple[tuple[str, Term], ...], limits: Limits) -> Term:
+    if type(fields) is not tuple:
+        raise ValueError("fields must be an immutable tuple of pairs")
+    names, values, entries = set(), [], []
+    for item in fields:
+        if type(item) is not tuple or len(item) != 2:
+            raise ValueError("each field must be a (name, value) tuple")
+        key, value = item
+        check_symbol(key)
+        if key in names:
+            raise ProfileError("duplicate keyword: " + key)
+        names.add(key)
+        values.append(value)
+        entries.append(Term(key, (value,)))
+    # Reject unattached keyword containers even in the last positional slot.
+    validate_core(positional)
+    validate(positional + tuple(values), limits=limits)
+    entries.sort(key=lambda e: e.symbol.encode("utf-8"))
+    children = positional + ((Term(KW, tuple(entries)),) if entries else ())
+    result = Term(head, children)
+    validate((result,), limits=limits)
     return result
 
 
+def application(head: str, positional: tuple[Term, ...] = (), *,
+                fields: tuple[tuple[str, Term], ...] = (),
+                limits: Limits = Limits()) -> Term:
+    check_symbol(head)
+    if head in RESERVED:
+        raise ProfileError("use the tagged-value constructor, not an ordinary head")
+    return _compose(head, positional, fields, limits)
+
+
+def tuple_value(items: tuple[Term, ...] = (), *,
+                fields: tuple[tuple[str, Term], ...] = (),
+                limits: Limits = Limits()) -> Term:
+    return _compose(TUPLE, items, fields, limits)
+
+
 def read_tuple(term: Term) -> tuple[Term, ...]:
+    """Read positional components; read_fields returns named components separately."""
     validate((term,))
     if term.symbol != TUPLE:
         raise ProfileError("expected tuple")
-    return term.args
+    return _split(term)[0]
