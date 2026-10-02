@@ -1,5 +1,6 @@
 """Presentation of validated repository results, with their complete host guards."""
-from scir import parse, digest
+from scir import digest
+from scir._profile_native import native
 from scir.delivery import _bundle
 from scir.knowledge import Index
 from scir.notation import Limits as NotationLimits
@@ -22,7 +23,7 @@ def present(index: Index, result: dict, *, kind: str, encoding: str = "native"):
     elif kind == "proposal":
         if result["before_snapshot"] != index.snapshot or not result["complete"]:
             raise ProfileError("repository proposal is not from this complete snapshot")
-        final = tuple(parse(t) for t in result["records"])
+        final = tuple(native(t, one=True) for t in result["records"])
         if digest(final) != result["candidate_snapshot"]:
             raise ProfileError("repository candidate differs from its fingerprint")
         guards["commit_basis"] = result["commit_basis"]["digest"]

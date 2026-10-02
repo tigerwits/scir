@@ -101,3 +101,16 @@ class RepositoryDeliveryTests(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertEqual(out.getvalue(), "")
             self.assertEqual(json.loads(err.getvalue())["status"], "conflict")
+
+    def test_native_capacity_failure_remains_incomplete_at_presentation(self):
+        from scir import digest, Term
+        from scir import profile as p
+        from scir.knowledge import build_index
+        document = (p.application("record", (Term("A"), Term("Note"), p.text("x" * 2_000_000))),)
+        index = build_index((), collection="x")
+        result = {"collection": "x", "repository_contract": "scir-repository/1",
+                  "input_basis": {"digest": "a"}, "commit_basis": {"digest": "b"},
+                  "before_snapshot": index.snapshot, "candidate_snapshot": digest(document),
+                  "records": [str(document[0])], "complete": True, "validation": {}}
+        with self.assertRaises(p.LimitError):
+            delivery.present(index, result, kind="proposal")

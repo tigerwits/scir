@@ -1,0 +1,7 @@
+record(R, Recovery, when(ambiguous(submission), require(before(lookup(originalKey), retry(originalKey)))), "scir.kw"(scope("scir.tuple"(environment(staging)))))
+record(D1, Decision, send(doc, "scir.kw"(from(alice), to(bob))), "scir.kw"(scope("scir.tuple"(environment(staging))), status(approved)))
+record(D2, Decision, send(doc, "scir.kw"(from(alice), to(bob))), "scir.kw"(reason("scir.text"("Reviewed replacement.")), scope("scir.tuple"(environment(staging))), status(approved), supersedes("scir.tuple"("scir.ref"(D1)))))
+record(Etest, Evidence, report, "scir.kw"(operation(test), outcome(passed), receipt(testReceipt), scope("scir.tuple"(environment(staging))), subject("scir.ref"(D2))))
+record(Edelivery, Evidence, report, "scir.kw"(operation(delivery), outcome(completed), receipt(deliveryReceipt), scope("scir.tuple"(environment(staging))), subject("scir.ref"(D2))))
+record(T, Task, send(doc, "scir.kw"(from(alice), to(bob))), "scir.kw"(decision("scir.ref"(D1)), dependsOn("scir.tuple"("scir.ref"(D1), "scir.ref"(R))), evidence("scir.tuple"("scir.ref"(Etest))), recovery("scir.ref"(R)), scope("scir.tuple"(environment(staging))), status(blocked)))
+record(N, Note, "scir.text"("Unrelated source note."))
