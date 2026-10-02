@@ -97,7 +97,8 @@ The proposal API also accepts `max_operations=1024` and
 SCIR does not check its authenticity or use it to authorize an operation.
 
 `scir-delivery/1` packets retain collection, profile, encoding, source/candidate
-fingerprints and host guards. Selected records retain every field and reference,
+fingerprints and host guards. In this schema, `native` means format 1.0 and
+`notation` means notation/1 with operators disabled. Selected records retain every field and reference,
 including scope, status and evidence. A full record is never replaced by a short
 summary. Detailed inclusion reasons are in the `scir-delivery-artifact/1` artifact.
 It contains the full original response and the same host guards. The packet gives

@@ -93,3 +93,15 @@ No fixed percentage saving, feature count or preferred spelling may override
 correctness. Before a broad migration, compare independent agent workflows with
 matched knowledge/tools and retain failures, scope loss, stale-edit rejection,
 repair cost and uncertainty handling. Structural checks alone are not that evidence.
+
+## Use the complete workflow
+
+Inspect sizes and capacity with [selection diagnostics](workflow-tools.md).
+Choose compact delivery explicitly; keep full responses for tasks that need audit
+information immediately. Compact output is not always smaller. Fetch and check
+the artifact hash when a complete candidate or repository write plan is needed.
+Never save a proposal delta over its source collection.
+
+Run the [consumer lifecycle example](../examples/consumer-lifecycle/README.md)
+to distinguish valid structure from trusted application policy. It uses fixed test
+doubles, not a live service. Preserve these trust limits when adapting the example.

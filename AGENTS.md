@@ -33,6 +33,11 @@ For a first use or a handoff change, run `python tools/check_self_host.py` and r
 [the executable self-use example](docs/self-hosting.md). It touches only a disposable
 copy and verifies the original inputs; it is not a production transaction recipe.
 
+Use `python spec/check.py knowledge diagnose --id ID --encoding notation` to inspect context
+and encoding capacity. Optional `select/propose --view compact` responses retain
+the basis digests; retrieve the hash-bound artifact for the complete basis and
+write plan. A proposal delta is not complete context. Read the [delivery contract](docs/workflow-tools.md).
+
 ## Authored prose and working knowledge
 
 Markdown is not required to be generated. Outside the two marked query sections,
@@ -63,6 +68,7 @@ Install the checkout or set `PYTHONPATH=src`, then run:
 python spec/check.py
 python -m unittest discover -s tests -v
 python tools/check_self_host.py
+python examples/consumer-lifecycle/run.py
 python tools/check_properties.py
 python tools/study_corpus.py
 python examples/dialects.py

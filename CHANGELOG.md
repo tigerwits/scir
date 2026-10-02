@@ -2,6 +2,15 @@
 
 ## Unreleased source hardening
 
+- Bounded selection diagnostics with exact content/envelope bytes, explicit edge
+  counts, and native/notation reader-capacity results. No tokenizer dependency.
+- Opt-in compact selection and proposal views with separately bounded, hash-bound
+  complete artifacts. Existing full responses and guards remain unchanged.
+- Repository delivery retains file bases and source-owned plans. Complete public
+  cost examples count later artifact retrieval and small-input overhead.
+- Trusted consumer lifecycle example with explicit supersession outcomes, fixed
+  receipt test doubles, positive/negative policy cases and relocation checks.
+
 - Explicit consumer boundaries for supersession, represented evidence and content
   history. Small independent regressions check supersession direction, A-to-B-to-A
   fingerprints, and native selection before bounded notation delivery.

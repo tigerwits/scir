@@ -23,13 +23,15 @@ def main():
     wheels, archives = list((root/'dist').glob('*.whl')), list((root/'dist').glob('*.tar.gz'))
     if len(wheels) != 1 or len(archives) != 1:
         raise ValueError('build exactly one wheel and one source distribution first')
-    required = {'profile.py', 'knowledge.py', 'changes.py', 'notation.py', '_profile_cli.py'}
+    required = {'profile.py', 'knowledge.py', 'changes.py', 'notation.py', '_profile_cli.py', 'diagnostics.py', 'delivery.py'}
     content = package_bytes(wheels[0])
     assert all('scir/'+name in content for name in required)
     with tarfile.open(archives[0]) as archive:
         names = {name.partition('/')[2] for name in archive.getnames() if '/' in name}
         assert {'proofs/ProfileLaws.lean', 'proofs/lean-toolchain', 'docs/profiles-api.md',
-                'examples/working-profile/notes.scix', 'tools/study_profiles.py'} <= names
+                'examples/working-profile/notes.scix', 'tools/study_profiles.py',
+                'examples/consumer-lifecycle/policy.py', 'examples/consumer-lifecycle/notes.scir',
+                'docs/workflow-tools.md', 'tools/study_delivery.py'} <= names
     with tempfile.TemporaryDirectory() as temp:
         workspace = Path(temp)
         rebuilt = workspace/'rebuilt'
@@ -45,6 +47,8 @@ def main():
 from scir.notation import lower
 from scir.knowledge import build_index, select
 from scir.changes import propose
+from scir.diagnostics import diagnose
+from scir.delivery import selection
 assert pathlib.Path(scir.__file__).resolve().is_relative_to(pathlib.Path(__import__('sys').argv[1]).resolve())
 assert scir.FORMAT_VERSION == "1.0"
 doc = lower('record(A, Note, t"literal")')
@@ -52,6 +56,9 @@ index = build_index(doc, collection="installed")
 assert select(index, ("A",)).document == doc
 request = json.dumps({"version":"scir-change/1", "collection":"installed", "expected_snapshot":index.snapshot, "operations":[]})
 assert propose(index, request).document == doc
+assert diagnose(index, ("A",))["selected"]["records"] == 1
+delivery = selection(index, ("A",), encoding="notation")
+assert delivery.checked_artifact(json.loads(delivery.packet)["artifact"]["sha256"]) == delivery.artifact
 print(json.dumps({"package":scir.__version__,"installed_from":scir.__file__,"checked":True}))
 '''
             subprocess.run([sys.executable, '-c', smoke, str(site)], cwd=workspace, env=env, check=True)

@@ -36,7 +36,11 @@ def record(identifier="R", kind="Requirement", **extra):
 class RepositoryKnowledgeTests(unittest.TestCase):
     def test_authored_catalog_and_legacy_projection_share_preserved_ids(self):
         index = load(ROOT)
-        self.assertEqual(len(index.records), 54)
+        self.assertEqual(len(index.records), 57)
+        self.assertTrue({"SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"} <= set(index.records))
+        for identifier in ("SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"):
+            self.assertIn("NoAgentTrials", select(index, (identifier,)).selected_ids)
+        self.assertEqual(dict(index.records["AgentEvaluation"].fields)["status"], Term("open"))
         legacy = parse_document((ROOT / "spec/requirements.scir").read_text(encoding="utf-8"))
         self.assertTrue({t.args[0].symbol for t in legacy if t.symbol == "requirement"} <= set(index.records))
         packet = select(index, ("NamedRoles",))
