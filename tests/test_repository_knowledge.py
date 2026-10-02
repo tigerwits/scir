@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def fixture(root):
     for directory in ("docs", "tests", "proofs", "spec"):
         (root / directory).mkdir()
+    (root / "spec/native.scir").write_text("", encoding="utf-8")
     (root / "docs/rules.md").write_text("# Rules\n\n```text\n# Hidden\n```\n", encoding="utf-8")
     (root / "tests/test_rule.py").write_text(
         "import unittest\nraise RuntimeError('must not execute')\n"
@@ -33,11 +34,11 @@ def record(identifier="R", kind="Requirement", **extra):
 
 
 class RepositoryKnowledgeTests(unittest.TestCase):
-    def test_authored_catalog_and_legacy_ownership_are_disjoint(self):
+    def test_authored_catalog_and_legacy_projection_share_preserved_ids(self):
         index = load(ROOT)
-        self.assertEqual(len(index.records), 24)
+        self.assertEqual(len(index.records), 54)
         legacy = parse_document((ROOT / "spec/requirements.scir").read_text(encoding="utf-8"))
-        self.assertFalse(set(index.records) & {t.args[0].symbol for t in legacy if t.symbol == "requirement"})
+        self.assertTrue({t.args[0].symbol for t in legacy if t.symbol == "requirement"} <= set(index.records))
         packet = select(index, ("NamedRoles",))
         self.assertTrue({"NamedRoles", "OptionalRoles", "TupleArity", "ModelProofBoundary"} <= set(packet.selected_ids))
         self.assertIn("test_duplicate_unsorted_and_misplaced_fields_fail", format_document(packet.document))
