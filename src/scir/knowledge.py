@@ -147,11 +147,10 @@ class Selection:
         }
 
 
-def select(index: Index, identifiers: tuple[str, ...], *,
+def _select_content(index: Index, identifiers: tuple[str, ...], *,
            max_records: int = 10_000, limits: p.Limits = p.Limits()) -> Selection:
-    """Return whole records closed over every declared local reference."""
+    """Build complete content before choosing a delivery envelope."""
     from collections import deque
-    import json
     seeds = _ids(index, identifiers, max_records)
     _positive(max_records, "max_records")
     reasons = {i: ("requested", None) for i in seeds}
@@ -169,6 +168,14 @@ def select(index: Index, identifiers: tuple[str, ...], *,
     p.validate(document, limits=limits)
     result = Selection(index.collection, index.snapshot, seeds, selected, document,
                        tuple((i, *reasons[i]) for i in selected))
+    return result
+
+
+def select(index: Index, identifiers: tuple[str, ...], *,
+           max_records: int = 10_000, limits: p.Limits = p.Limits()) -> Selection:
+    """Return whole records and bound the original working/1 JSON envelope."""
+    import json
+    result = _select_content(index, identifiers, max_records=max_records, limits=limits)
     # Envelope costs, not just payload bytes, count against the output budget.
     wire = json.dumps(result.as_dict(), ensure_ascii=False, separators=(",", ":")) + "\n"
     if len(wire.encode("utf-8")) > limits.bytes:
