@@ -109,3 +109,68 @@ def build_index(document: Document, *, collection: str,
                 reverse[target].append(identifier)
     return Index(collection, document, digest(document), records, references,
                  {key: tuple(value) for key, value in reverse.items()})
+
+
+def _ids(index: Index, identifiers: tuple[str, ...], maximum: int) -> tuple[str, ...]:
+    if type(index) is not Index or type(identifiers) is not tuple:
+        raise ValueError("expected an Index and an immutable ID tuple")
+    _positive(maximum, "max_records")
+    if len(identifiers) > maximum:
+        raise p.LimitError("requested ID budget exceeded")
+    unique = {}
+    for identifier in identifiers:
+        check_symbol(identifier)
+        if identifier not in index.records:
+            raise p.ProfileError("unknown record ID: " + identifier)
+        unique.setdefault(identifier, None)
+    return tuple(unique)
+
+
+@dataclass(frozen=True, slots=True)
+class Selection:
+    collection: str
+    source_snapshot: str
+    requested_ids: tuple[str, ...]
+    selected_ids: tuple[str, ...]
+    document: Document
+    reasons: tuple[tuple[str, str, str | None], ...]
+    profile: str = VERSION
+    complete: bool = True
+
+    def as_dict(self) -> dict:
+        return {
+            "profile": self.profile, "collection": self.collection,
+            "source_snapshot": self.source_snapshot,
+            "requested_ids": list(self.requested_ids), "selected_ids": list(self.selected_ids),
+            "records": [str(t) for t in self.document], "complete": self.complete,
+            "reasons": [{"id": i, "kind": k, "via": v} for i, k, v in self.reasons],
+        }
+
+
+def select(index: Index, identifiers: tuple[str, ...], *,
+           max_records: int = 10_000, limits: p.Limits = p.Limits()) -> Selection:
+    """Return whole records closed over every declared local reference."""
+    from collections import deque
+    import json
+    seeds = _ids(index, identifiers, max_records)
+    _positive(max_records, "max_records")
+    reasons = {i: ("requested", None) for i in seeds}
+    queue = deque(seeds)
+    while queue:
+        if len(reasons) > max_records:
+            raise p.LimitError("selection record budget exceeded")
+        identifier = queue.popleft()
+        for target in index.references[identifier]:
+            if target not in reasons:
+                reasons[target] = ("reference", identifier)
+                queue.append(target)
+    selected = tuple(i for i in index.records if i in reasons)
+    document = tuple(index.records[i].term for i in selected)
+    p.validate(document, limits=limits)
+    result = Selection(index.collection, index.snapshot, seeds, selected, document,
+                       tuple((i, *reasons[i]) for i in selected))
+    # Envelope costs, not just payload bytes, count against the output budget.
+    wire = json.dumps(result.as_dict(), ensure_ascii=False, separators=(",", ":")) + "\n"
+    if len(wire.encode("utf-8")) > limits.bytes:
+        raise p.LimitError("selection packet byte budget exceeded")
+    return result
