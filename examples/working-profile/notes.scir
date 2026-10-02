@@ -1,0 +1,4 @@
+record(A1, Assumption, idempotent(handler), "scir.kw"(status(unverified)))
+record(D1, Decision, use(outbox), "scir.kw"(dependsOn("scir.tuple"("scir.ref"(A1))), reason("scir.text"("Delivery may succeed before a response is lost.")), status(proposed)))
+record(T1, Task, "Communication.send"("scir.tuple"(doc, "scir.kw"(from(alice), to(bob)))), "scir.kw"(dependsOn("scir.tuple"("scir.ref"(D1))), scope("scir.tuple"(environment(staging))), status(blocked)))
+record(Q1, Question, "scir.text"("Which provider deduplicates requests?"), "scir.kw"(evidence("scir.tuple"("scir.ref"(A1)))))

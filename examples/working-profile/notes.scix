@@ -1,0 +1,6 @@
+@using C = Communication
+@let request = (doc, from: alice, to: bob)
+record(A1, Assumption, idempotent(handler), status: unverified)
+record(D1, Decision, use(outbox), dependsOn: (&A1,), status: proposed, reason: t"Delivery may succeed before a response is lost.")
+record(T1, Task, C.send($request), dependsOn: (&D1,), scope: (environment(staging),), status: blocked)
+record(Q1, Question, t"Which provider deduplicates requests?", evidence: (&A1,))
