@@ -58,17 +58,20 @@ are explicit but not a multi-file filesystem transaction.
 
 `python spec/check.py knowledge select --id NamedRoles` returns whole records,
 including declared rationale, dependency and proof-scope links. `affected` follows
-reverse `dependsOn`, not every citation. Repository `propose --change REQUEST`
-adds the stronger local contract and derived-view preflight to the pure runtime
-candidate checker; generic `scir knowledge propose` checks only `working/1`.
+reverse `dependsOn`, not every citation. Repository `propose` requires `--basis`
+from the selection and `--change REQUEST`; see [the handoff contract](HANDOFF.md).
+It adds exact input-file guards, source-owned partitioning, local link validation
+and derived-view preflight. Generic `scir knowledge propose` checks only `working/1`.
 Neither proposal command writes source or assigns approval.
 
-The combined content snapshot covers both SCIR shards, not the bytes of linked
-Markdown, tests, proof files, or Git history. A host persists with an atomic
-revision precondition and checks its broader checkout basis where relevant.
-Candidate output is the entire combined collection; a host preserves shard
-membership or explicitly reviews its repartition. It must not save the whole
-combined candidate into one shard while leaving duplicates in another.
+The ordinary content snapshot covers both SCIR shards. The separate input basis
+also covers declared authoritative files, tests, model sources, derived targets
+and repository checker inputs. Candidate output includes a per-file write plan
+that retains existing source membership; new IDs require explicit placements.
+A host must atomically enforce the commit basis and write-plan preconditions.
+Neither a content hash nor this bounded file basis covers Git history, unlinked
+inputs or A-to-B-to-A changes. Do not save a combined candidate into one shard
+while leaving duplicates in another; use the reviewed explicit plan.
 
 Compact notation is a delivery/authoring option, not a second maintained copy.
 No source rewrite guesses whether to edit an alias definition or one occurrence.
@@ -83,7 +86,8 @@ bytes. Its 2 MB per-file inspection bound also applies to legacy catalog links;
 exhaustion is an incomplete check, never proof that a location is absent. The
 legacy entrypoint and ordered diagnostics remain available as compatibility
 adapters; their independent conformance expectations are not generated from the
-working records.
+working records. `catalog.py` owns reusable legacy validation/rendering; it does
+not call back into either CLI or repository orchestration.
 
 The former current-source hash assertion now lives in the explicit historical
 [baseline checker](../tools/check_native_baseline.py) and its separate CI job.
@@ -91,8 +95,7 @@ It checks the five recorded native files at commit `3ceeb1e`, not current HEAD.
 Historical exact-byte identity and present-day behavioral compatibility are
 different obligations. Current format, digest, transport, query, scope and
 negative-control tests remain mandatory; source reformatting is not itself a
-format break. This cleanup changes no runtime code or conformance vector.
-Historical reports still describe the actual revisions they measured.
+format break. Historical reports still describe the actual revisions they measured.
 
 Keep independently constructed expected results even when they resemble runtime
 code. Remove duplicated implementations only after replacement checks exist.

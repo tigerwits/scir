@@ -25,8 +25,10 @@ independent prose revision or automatic rendering as a new source fact.
 Run `python spec/check.py` before and after changes. It checks both source shards,
 references, source/test/model links, stored query examples and view freshness. It
 does not run the linked tests or Lean proofs. Keep independent conformance tests.
-Repository `knowledge propose --change FILE` validates the stronger local contract
-and returns a candidate; it never persists or automatically approves a change.
+Repository `knowledge propose --basis DIGEST --change FILE` requires the inspected
+selection's input-basis digest, validates local contracts and returns a source-owned
+write plan. Read [handoffs](spec/HANDOFF.md); never refresh a stale guard without
+reviewing changed inputs. Proposals do not persist or automatically approve changes.
 
 ## Authored prose and working knowledge
 

@@ -9,16 +9,17 @@ import sys
 
 from scir import Document, Term, format_document, parse_document
 from scir.knowledge import Index, build_index
+from scir._profile_native import native, failure
 from scir.profile import LimitError, ProfileError, read_fields, read_tuple
 
 if __package__:
     from .locations import declarations, local_file, read_source
     from .projection import legacy_document, QUERY_FIELDS
-    from . import catalog
+    from . import catalog, handoff
 else:
     from locations import declarations, local_file, read_source
     from projection import legacy_document, QUERY_FIELDS
-    import catalog
+    import catalog, handoff
 
 ROOT = Path(__file__).resolve().parents[1]
 COLLECTION = "scir-repository"
@@ -58,7 +59,13 @@ def validate(document: Document, root: Path = ROOT) -> Index:
         if term.symbol != kind or len(term.args) != 2:
             raise ProfileError("expected " + kind + "(path, declaration)")
         path, name = (_leaf(a, "location") for a in term.args)
-        if names(path, kind).count(name) != 1:
+        try:
+            found = names(path, kind).count(name)
+        except LimitError:
+            raise
+        except ValueError as error:
+            raise ProfileError(str(error)) from error
+        if found != 1:
             raise ProfileError(f"expected one {name!r} in {path!r}")
 
     for record in index.records.values():
@@ -96,7 +103,7 @@ def load(root: Path = ROOT) -> Index:
     document = ()
     for name in SOURCES:
         source = read_source(local_file(root, name, ".scir"))
-        shard = parse_document(source)
+        shard = native(source)
         if format_document(shard) != source:
             raise ProfileError("repository knowledge must be canonical: " + name)
         document += shard
@@ -122,6 +129,35 @@ def propose_checked(index: Index, request: str, root: Path = ROOT):
     candidate = validate(proposal.document, root)
     updates(candidate, root)  # Preflight derived views, but do not write them.
     return proposal
+
+
+def propose_handoff(index: Index, request: str, expected_basis: str,
+                    root: Path = ROOT, *, placements=None):
+    """Plan a source-owned update against exact maintenance input bytes."""
+    from scir.changes import ConflictError, propose
+    root = root.resolve()
+    before = handoff.capture(root, index, SOURCES)
+    if expected_basis != before.fingerprint:
+        raise ConflictError("repository input basis changed; select fresh context")
+    proposed = propose(index, request)
+    document, shards = handoff.partition(proposed.document, before, SOURCES, placements)
+    # Capture newly introduced source links too, before checking their contents.
+    candidate_index = build_index(document, collection=COLLECTION)
+    prospective = handoff.capture(root, index, SOURCES, extra=handoff.linked_paths(candidate_index))
+    candidate = validate(document, root)
+    derived = updates(candidate, root)
+    write_plan = handoff.writes(root, prospective, shards, derived)
+    if (handoff.capture(root, index, SOURCES) != before or
+            handoff.capture(root, index, SOURCES, extra=handoff.linked_paths(candidate)) != prospective):
+        raise ConflictError("repository inputs changed during proposal validation")
+    return {"version": "scir-repository-proposal/1", "collection": COLLECTION,
+            "before_snapshot": index.snapshot, "candidate_snapshot": candidate.snapshot,
+            "runtime_candidate_snapshot": proposed.candidate_snapshot,
+            "request": proposed.request.as_dict(), "placements": {} if placements is None else placements,
+            "records": [str(t) for t in document], "write_plan": write_plan,
+            "input_basis": before.packet(), "commit_basis": prospective.packet(),
+            "repository_contract": "scir-repository/1", "complete": True,
+            "source_written": False, "validation": {"profile": "scir-repository/1", "complete": True}}
 
 
 def maintenance(root: Path = ROOT, *, write_views=False, markdown=False) -> int:
@@ -172,12 +208,15 @@ def main(argv=None) -> int:
     review.add_argument("--changed", action="append", required=True)
     change = sub.add_parser("propose")
     change.add_argument("--change", type=Path, required=True)
+    change.add_argument("--basis", required=True, help="input_basis.digest from a fresh selection")
+    change.add_argument("--placements", type=Path, help="JSON mapping of newly created IDs to source shards")
     args = parser.parse_args(argv)
     if args.command in (None, "check", "refresh"):
         return maintenance(write_views=args.command == "refresh")
     try:
         from scir.knowledge import select, affected
         index = load()
+        basis = handoff.capture(ROOT, index, SOURCES)
         if args.command == "select":
             result = select(index, tuple(args.id)).as_dict()
         elif args.command == "affected":
@@ -185,16 +224,22 @@ def main(argv=None) -> int:
                       "review_ids": affected(index, tuple(args.changed))}
         else:
             request = read_source(args.change)
-            result = propose_checked(index, request).as_dict()
+            from scir.changes import _object, _constant
+            placements = (json.loads(read_source(args.placements), object_pairs_hook=_object,
+                                     parse_constant=_constant) if args.placements else None)
+            result = propose_handoff(index, request, args.basis, ROOT, placements=placements)
+        if handoff.capture(ROOT, index, SOURCES) != basis:
+            from scir.changes import ConflictError
+            raise ConflictError("repository inputs changed during command")
+        result.setdefault("input_basis", basis.packet())
         result["repository_contract"] = "scir-repository/1"
         _emit(sys.stdout, result)
         return 0
-    except ProfileError as error:
-        _emit(sys.stderr, {"status": "rejected", "error": str(error)})
-        return 1
     except (ValueError, OSError, RecursionError) as error:
-        _emit(sys.stderr, {"status": "incomplete", "error": str(error)})
-        return 2
+        code, diagnostic = failure(error)
+        _emit(sys.stderr, {"status": diagnostic["error"], "error": diagnostic["message"],
+                           "complete": diagnostic["complete"]})
+        return code
 
 
 if __name__ == "__main__":

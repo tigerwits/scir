@@ -29,7 +29,6 @@ python spec/check.py --markdown
 python spec/check.py knowledge select --id NamedRoles
 python spec/check.py knowledge select --id RootScope
 python spec/check.py knowledge affected --changed PreserveCallArity
-python spec/check.py knowledge propose --change change.json
 ```
 
 Selection starts from known IDs and follows all explicit references, returning
@@ -37,11 +36,19 @@ whole records with their source snapshot and context. It does not discover
 unwritten dependencies or infer facts. Review candidates follow only reverse
 `dependsOn` relationships. A source link is not evidence of a successful run.
 
-Change requests use `scir-change/1` and the full combined collection snapshot.
-The repository wrapper rejects candidates that pass generic `working/1` but break
-local source/test/model links or query projection. It returns a full candidate
-without writing source. Stronger authorization, Git revision guards, persistence
-and partitioning the candidate back into the source shards belong to the host.
+Read the [handoff contract](HANDOFF.md) before proposing a change. Requests retain
+`scir-change/1` and the full combined content snapshot; the repository CLI also
+requires `--basis` with the inspected selection's `input_basis.digest`:
+
+```sh
+python spec/check.py knowledge propose --basis "$BASIS" --change change.json
+```
+
+The additional guard covers exact linked source/test/model bytes, shard ownership
+and repository-tool inputs. The repository wrapper checks local links and query
+projection, returning a full candidate and explicit per-shard write plan without
+writing source. New records require explicit source placements. The host still
+owns authorization and an atomic commit of all preconditions and planned files.
 
 ## Refresh only the derived material
 
@@ -67,8 +74,9 @@ python -m scir query spec/requirements.scir --pattern 'coveredBy(RootScope, ?tes
 ```
 
 The existing `validate_catalog`, query example and renderer functions remain
-available for independently supplied legacy catalogs and regression fixtures.
-They are a compatibility adapter, not another authored account of the project.
+available through `check.py` compatibility exports. Their reusable implementation
+lives in `catalog.py`, below both CLI and repository orchestration. They are not
+another authored account of the project.
 
 ## What checks establish
 
