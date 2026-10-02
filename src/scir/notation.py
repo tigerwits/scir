@@ -68,6 +68,8 @@ class _Parser:
         if len(source) > limits.source_bytes or len(source.encode("utf-8")) > limits.source_bytes:
             raise p.LimitError("notation source byte budget exceeded")
         self.source, self.limits = source, limits
+        self.aliases, self.values = {}, {}
+        self.declarations = 0
         self.tokens, self.index = self.lex(), 0
 
     def fail(self, message: str, position: int | None = None):
@@ -97,6 +99,12 @@ class _Parser:
                 except (ValueError, UnicodeError) as error:
                     self.fail("invalid Unicode JSON string", start)
                 kind, position = ("text" if text else "symbol"), match.end()
+            elif char in "@$":
+                match = _SEGMENT.match(self.source, position + 1)
+                if match is None:
+                    self.fail("expected a binding name", start)
+                kind, value = ("directive" if char == "@" else "value"), match.group()
+                position = match.end()
             elif char in "(),;:&=\n":
                 kind, value, position = char, char, position + 1
             else:
@@ -129,6 +137,10 @@ class _Parser:
     def newlines(self) -> None:
         while self.current.kind == "\n":
             self.take()
+
+    def qualify(self, name: str) -> str:
+        first, dot, rest = name.partition(".")
+        return self.aliases.get(first, first) + dot + rest if dot else name
 
     def node(self, head: str, children: list[_Value], position: int) -> _Value:
         try:
@@ -196,8 +208,14 @@ class _Parser:
             if identifier.kind not in ("name", "symbol"):
                 self.fail("reference requires a literal ID", identifier.position)
             return self.node(p.REF, [self.node(identifier.value, [], identifier.position)], token.position)
+        if token.kind == "value":
+            if token.value not in self.values:
+                self.fail("unknown ground abbreviation", token.position)
+            if self.current.kind == "(":
+                self.fail("ground abbreviations are not callable heads")
+            return self.values[token.value]
         if token.kind in ("name", "symbol"):
-            head = token.value
+            head = self.qualify(token.value) if token.kind == "name" else token.value
             if head in p.RESERVED:
                 self.fail("use tuple/text/reference syntax for profile tags", token.position)
         else:
@@ -211,16 +229,48 @@ class _Parser:
             raise p.LimitError("notation parser depth exceeded")
         return self.atom(nesting)
 
+    def declaration(self) -> None:
+        directive = self.take()
+        if directive.value not in ("using", "let"):
+            self.fail("unsupported declaration", directive.position)
+        name = self.expect("name")
+        if not _SEGMENT.fullmatch(name.value):
+            self.fail("binding names must be single identifier segments", name.position)
+        aliases = directive.value == "using"
+        table = self.aliases if aliases else self.values
+        if name.value in table:
+            self.fail("duplicate binding", name.position)
+        self.declarations += 1
+        if self.declarations > self.limits.declarations:
+            raise p.LimitError("declaration budget exceeded")
+        self.expect("=")
+        self.newlines()
+        if aliases:
+            target = self.take()
+            if target.kind not in ("name", "symbol"):
+                self.fail("expected a qualified alias target", target.position)
+            value = self.qualify(target.value) if target.kind == "name" else target.value
+            if not _NAME.fullmatch(value):
+                self.fail("alias target requires identifier segments", target.position)
+            if len(value.encode("utf-8")) > self.limits.expanded_bytes:
+                raise p.LimitError("alias expansion byte budget exceeded")
+        else:
+            value = self.expr()
+        table[name.value] = value
+
     def document(self) -> Document:
         roots, nodes, size = [], 0, 0
         self.newlines()
         while self.current.kind != "eof":
-            value = self.expr()
-            nodes += value.nodes
-            size += value.size + 1
-            if nodes > self.limits.nodes or size > self.limits.expanded_bytes:
-                raise p.LimitError("expanded document exceeds bounds")
-            roots.append(value.term)
+            if self.current.kind == "directive":
+                self.declaration()
+            else:
+                value = self.expr()
+                nodes += value.nodes
+                size += value.size + 1
+                if nodes > self.limits.nodes or size > self.limits.expanded_bytes:
+                    raise p.LimitError("expanded document exceeds bounds")
+                roots.append(value.term)
             if self.current.kind == "eof":
                 break
             if self.current.kind not in ("\n", ";"):
