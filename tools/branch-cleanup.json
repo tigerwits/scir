@@ -1,16 +1,6 @@
 {
   "repository": "tigerwits/scir",
   "branches": {
-    "experiment/scir-cumulative-profiles-20260914": "b91b32718dc9bc53b56f6b383c89e3095252623f",
-    "feat/guarded-changes": "9354dce5eb3dccc3b13fa5f7850d8f11a9d41c04",
-    "feat/notation-profile": "a9b549ccfab63c704ac904752c9ba73379a46c2e",
-    "feat/profile-integration": "245b0c3b20f97b3a994ef196fbdf27e370aadd97",
-    "feat/structured-profile": "b56b28c265c426ed72fab11b986b4dbd1177a977",
-    "feat/working-knowledge": "bf14fef76c792d4080a6633fbb0562affeee34b9",
-    "knowledge/maintenance-cleanup": "d7c07d990d1535e41231ddc39fb1a2127c116224",
-    "knowledge/profile-coverage": "060809354d34aeb3693aca376f77f88e46ccb434",
-    "knowledge/self-maintenance": "d5c615914a4371b8926289a7c7baff84bf50c208",
-    "fix/review-runtime": "209d1a89ba4a083d4bbe4527eb8834c7d017c7e0",
-    "fix/review-handoff": "ea64baddfea4bfe9ff06358f69c013cc7f7b6dba"
+    "adoption/skills-self-host": "14fafef293dd8c7e8f6a00b23f103202512cf7f9"
   }
 }
