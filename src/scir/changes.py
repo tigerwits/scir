@@ -150,14 +150,12 @@ class Proposal:
         }
 
 
-def propose(index: Index, source: str, *, limits: p.Limits = p.Limits(),
+def _propose_content(index: Index, source: str, *, limits: p.Limits = p.Limits(),
             max_records: int = 10_000, max_operations: int = 1024,
-            max_request_bytes: int = 1_000_000,
-            max_result_bytes: int = 16_000_000) -> Proposal:
+            max_request_bytes: int = 1_000_000) -> Proposal:
     """Build a validated candidate only. Hosts own atomic persistence and policy."""
     if type(index) is not Index:
         raise ValueError("expected an Index built from the current collection")
-    _positive(max_result_bytes, "max_result_bytes")
     request = read_request(source, max_bytes=max_request_bytes,
                            max_operations=max_operations, limits=limits)
     if request.collection != index.collection or request.expected_snapshot != index.snapshot:
@@ -210,6 +208,19 @@ def propose(index: Index, source: str, *, limits: p.Limits = p.Limits(),
     document = tuple(candidate[i] for i in order)
     final = build_index(document, collection=index.collection, limits=limits, max_records=max_records)
     result = Proposal(index.collection, index.snapshot, final.snapshot, document, request)
+    return result
+
+
+def propose(index: Index, source: str, *, limits: p.Limits = p.Limits(),
+            max_records: int = 10_000, max_operations: int = 1024,
+            max_request_bytes: int = 1_000_000,
+            max_result_bytes: int = 16_000_000) -> Proposal:
+    """Build a validated candidate and bound the original full response."""
+    if type(index) is not Index:
+        raise ValueError("expected an Index built from the current collection")
+    _positive(max_result_bytes, "max_result_bytes")
+    result = _propose_content(index, source, limits=limits, max_records=max_records,
+                              max_operations=max_operations, max_request_bytes=max_request_bytes)
     wire = json.dumps(result.as_dict(), ensure_ascii=False, separators=(",", ":")) + "\n"
     if len(wire.encode("utf-8")) > max_result_bytes:
         raise p.LimitError("proposal packet byte budget exceeded")

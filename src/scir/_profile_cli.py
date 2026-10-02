@@ -36,6 +36,11 @@ def register(subparsers) -> None:
             command.add_argument("--changed", action="append", required=True)
         elif name == "propose":
             command.add_argument("--change", required=True, help="JSON request file, or - for stdin")
+        if name in ("select", "propose"):
+            command.add_argument("--view", choices=("full", "compact", "artifact"), default="full")
+            command.add_argument("--encoding", choices=("native", "notation"))
+            command.add_argument("--expected-artifact", help="SHA-256 from the previous compact packet")
+            command.add_argument("--max-artifact-bytes", type=_positive, default=16_000_000)
 
 
 def _read_file(path: str, maximum: int) -> str:
@@ -57,6 +62,10 @@ def execute(args, write) -> int:
     from . import profile as p
     from .knowledge import VERSION, build_index, select, affected
     from .changes import propose
+    # Older direct callers can omit additive parser options.
+    view = getattr(args, "view", "full")
+    encoding = getattr(args, "encoding", None)
+    expected_artifact = getattr(args, "expected_artifact", None)
     try:
         if args.command == "lower":
             from .notation import lower
@@ -64,9 +73,27 @@ def execute(args, write) -> int:
         else:
             if args.operation == "propose" and args.file == args.change == "-":
                 raise p.ProfileError("document and change request cannot both consume stdin")
+            if args.operation in ("select", "propose"):
+                if view == "full" and encoding is not None:
+                    raise p.ProfileError("encoding requires an explicit delivery view")
+                if (view == "artifact") != (expected_artifact is not None):
+                    raise p.ProfileError("artifact view requires its expected hash; other views forbid it")
             source = _read_file(args.file, 16_000_000)
             document = native(source)
             index = build_index(document, collection=args.collection, max_records=args.max_records)
+            if args.operation in ("select", "propose") and view != "full":
+                from . import delivery
+                options = {"encoding": encoding or "native", "max_records": args.max_records,
+                           "max_packet_bytes": args.max_output_bytes if view == "compact" else 16_000_000,
+                           "max_artifact_bytes": getattr(args, "max_artifact_bytes", 16_000_000)}
+                delivered = (delivery.selection(index, tuple(args.id), **options) if args.operation == "select"
+                             else delivery.proposal(index, _read_file(args.change, 1_000_000), **options))
+                output = (delivered.packet if view == "compact"
+                          else delivered.checked_artifact(expected_artifact))
+                if len(output.encode("utf-8")) > args.max_output_bytes:
+                    raise p.LimitError("complete response exceeds the output budget")
+                write(sys.stdout, output)
+                return 0
             if args.operation == "check":
                 result = {"profile": VERSION, "collection": index.collection,
                           "snapshot": index.snapshot, "records": len(index.records),
@@ -76,7 +103,7 @@ def execute(args, write) -> int:
                                 limits=p.Limits(bytes=args.max_output_bytes)).as_dict()
             elif args.operation == "diagnose":
                 from .diagnostics import diagnose
-                result = diagnose(index, tuple(args.id), encoding=args.encoding,
+                result = diagnose(index, tuple(args.id), encoding=encoding,
                                   max_records=args.max_records, max_output_bytes=args.max_output_bytes)
             elif args.operation == "affected":
                 result = {"profile": VERSION, "collection": index.collection,
