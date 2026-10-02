@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from scir import parse_document
 from scir.profile import LimitError
-from spec import check, locations
+from spec import check, catalog, locations
 
 
 class RepositoryLocationTests(unittest.TestCase):
@@ -26,14 +26,14 @@ class RepositoryLocationTests(unittest.TestCase):
         document = parse_document('requirement(R, Core, p)\nspecifiedBy(R, section("rules.md", Rules))\ncoveredBy(R, test("tests/test_rules.py", "Rules.test_ok"))')
         def names(root, name, kind):
             return ["Rules"] if kind == "section" else ["Rules.test_ok"]
-        with patch.object(check, "source_declarations", side_effect=names) as resolve:
+        with patch.object(catalog, "source_declarations", side_effect=names) as resolve:
             self.assertEqual(check.validate_catalog(document), ())
         self.assertEqual([call.args[1:] for call in resolve.call_args_list], [
             ("rules.md", "section"), ("tests/test_rules.py", "test")])
 
     def test_resource_failure_is_incomplete_not_a_missing_location(self):
         document = parse_document('requirement(R, Core, p)\nspecifiedBy(R, section("rules.md", Rules))')
-        with patch.object(check, "source_declarations", side_effect=LimitError("source budget")):
+        with patch.object(catalog, "source_declarations", side_effect=LimitError("source budget")):
             with self.assertRaises(LimitError):
                 check.validate_catalog(document)
 
