@@ -109,3 +109,22 @@ class RepositoryHandoffTests(unittest.TestCase):
                 return result
             with patch.object(repository, "validate", side_effect=changing), self.assertRaises(ConflictError):
                 repository.propose_handoff(index, request(index, []), basis.fingerprint, root)
+
+    def test_unreadable_candidate_shard_is_not_a_successful_write_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            index = fixture(root)
+            old = index.records["D"].term
+            large = Term("record", old.args[:2] + (p.text("x" * 1_300_000),) + old.args[3:])
+            source_path = root / "spec/knowledge.scir"
+            source_path.write_bytes(format_document((large,)).encode())
+            index = repository.load(root)
+            basis = handoff.capture(root, index, repository.SOURCES)
+            change = request(index, [{"op": "setField", "id": "D", "field": "reason",
+                                      "value": str(p.text("y" * 800_000))}])
+            from scir.changes import propose
+            self.assertTrue(propose(index, change).document)  # Generic profile accepts the candidate.
+            before = source_path.read_bytes()
+            with self.assertRaisesRegex(p.LimitError, "candidate repository source"):
+                repository.propose_handoff(index, change, basis.fingerprint, root)
+            self.assertEqual(source_path.read_bytes(), before)

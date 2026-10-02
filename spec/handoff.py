@@ -12,9 +12,9 @@ from scir.changes import ConflictError
 from scir.profile import LimitError, ProfileError, read_tuple, read_fields
 
 if __package__:
-    from .locations import local_file, read_source
+    from .locations import MAX_SOURCE_BYTES, local_file, read_source
 else:
-    from locations import local_file, read_source
+    from locations import MAX_SOURCE_BYTES, local_file, read_source
 
 VERSION = "scir-repository-basis/1"
 MAX_FILES = 2048
@@ -134,7 +134,12 @@ def writes(root: Path, basis: Basis, shards, derived):
                    for path, raw in derived)
     result = []
     for name, content, role in entries:
-        actual = sha(content.encode("utf-8"))
+        raw = content.encode("utf-8")
+        if len(raw) > MAX_SOURCE_BYTES:
+            raise LimitError("candidate repository source byte limit exceeded: " + name)
+        if role == "authoritative" and format_document(native(content)) != content:
+            raise ProfileError("candidate source is not canonical: " + name)
+        actual = sha(raw)
         if actual != expected[name]:
             result.append({"path": name, "role": role, "expected_sha256": expected[name],
                            "sha256": actual, "content": content})

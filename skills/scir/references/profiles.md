@@ -79,3 +79,27 @@ New commands return 0 on success, 1 for completed rejection/conflict, 2 when che
 cannot complete or invocation is invalid. Old native commands retain their original
 codes. Resource errors never certify partial content as complete. No model benefit
 or complete proof follows from successful parsing, profile checks, or file hashes.
+
+## Inspect costs and choose delivery explicitly
+
+Current source checkouts can also provide `knowledge diagnose FILE --collection ID
+--id RECORD --encoding notation`. Inspect `encoding_check.complete`; a completed
+report can show that the encoding does not fit. A size failure is not zero cost.
+Do not remove required scope or dependencies to reduce the report.
+
+`knowledge select/propose` default to their full responses. When the approved
+checkout supports them, `--view compact --encoding notation` returns a bounded
+packet and an artifact hash. Selection still contains complete records. A proposal
+packet contains only changed records and deleted IDs, and states that context is
+incomplete. Never save it over a full collection or authored source.
+
+Retrieve complete audit/candidate data with the same request and `--view artifact
+--expected-artifact HASH`. A changed artifact is a conflict, not a reason to replace
+the expected hash without reviewing new inputs. Count later artifact reads when
+measuring cost. Generic host guards are opaque values, not authenticated receipts.
+Repository adapters retain their additional file-basis and source-ownership rules.
+
+A consumer must separately check policy and authentic evidence. Selecting an old
+record does not find its future replacement. Report competing replacements, cycles
+and different scopes explicitly under the consumer's rules. Neither a declared
+approved status nor matching evidence fields authorize an operation.

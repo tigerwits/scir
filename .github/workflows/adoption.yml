@@ -31,6 +31,7 @@ jobs:
           cd "$outside"/symbolic_content_ir-*
           python skills/scir/scripts/working_example.py > "$GITHUB_WORKSPACE/.build/consumer.json"
           python tools/check_self_host.py > "$GITHUB_WORKSPACE/.build/self-host.json"
+          python examples/consumer-lifecycle/run.py > "$GITHUB_WORKSPACE/.build/lifecycle.json"
       - name: Retain exact tested source and distributions
         run: |
           git diff --exit-code
@@ -42,6 +43,7 @@ jobs:
           path: |
             .build/consumer.json
             .build/self-host.json
+            .build/lifecycle.json
             .build/source-revision.txt
             .build/source.tar.gz
             dist/

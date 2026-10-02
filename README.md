@@ -18,6 +18,8 @@ can impose stronger rules without replacing the representation.
 | Use the current profiles in another project | [Portable consumer skill](skills/scir/SKILL.md) | `python skills/scir/scripts/working_example.py` |
 | Migrate existing knowledge deliberately | [Migration skill](skills/scir-migrate/SKILL.md) | Follow the source-ownership and project-check rules |
 | Maintain SCIR itself | [Contributor workflow](AGENTS.md) and [self-use walkthrough](docs/self-hosting.md) | `python tools/check_self_host.py` |
+| Inspect selection and delivery costs | [Bounded workflow tools](docs/workflow-tools.md) | `python tools/study_delivery.py --output .build/delivery-study` |
+| Add trusted consumer rules | [Lifecycle example](examples/consumer-lifecycle/README.md) | `python examples/consumer-lifecycle/run.py` |
 
 Run examples with the approved installed package. The consumer example writes no
 files. The self-use walkthrough runs real repository commands and replays only in

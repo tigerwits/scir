@@ -189,3 +189,21 @@ All command output uses UTF-8 and LF, independently of terminal encoding/platfor
 Commands do not overwrite files, choose a lower-trust profile from input, or install
 a package. Never redirect output onto the input file. Review candidate content and
 preserve ownership of authored notation versus maintained canonical content.
+
+## Diagnostics and optional delivery
+
+The additive `scir.diagnostics` and `scir.delivery` modules provide bounded cost
+reports and optional response views. See [the workflow API](workflow-tools.md)
+for exact arguments, wire schemas, reader checks and byte limits. The original
+`Selection`, `Proposal`, `select()` and `propose()` response contracts stay intact.
+New results are output values, not unchecked constructors for accepted state.
+
+The runtime and repository CLIs retain full responses by default. Explicit compact
+views retain whole selected records; proposal views are labelled deltas. Full
+audit/candidate data remains in a hash-bound artifact. Later retrieval costs count,
+and a small packet does not authorize a source write.
+
+The [consumer lifecycle example](../examples/consumer-lifecycle/README.md) shows
+trusted policy, evidence requirements and explicit replacement resolution. Those
+rules belong to that example, not the generic library. A status label, represented
+receipt or successful generic parse cannot authenticate execution or approval.

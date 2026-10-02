@@ -62,7 +62,10 @@ new records append within their assigned shard.
 content fingerprints, request, placements, input/commit bases and `write_plan`.
 Each changed file entry includes its path, authoritative/derived role, expected
 old SHA-256, candidate SHA-256 and exact candidate text. Unchanged files are not
-rewritten. Derived query sections preserve outside prose.
+rewritten. Derived query sections preserve outside prose. Before returning a plan,
+check each candidate file against the repository source-byte limit and check each
+authoritative shard with the native reader. A generic candidate can fit its
+profile limit while its proposed source file does not. That plan fails explicitly.
 
 Assigning a new record to the earlier shard may differ from the generic runtime's
 append-at-end order. `runtime_candidate_snapshot` identifies that intermediate
