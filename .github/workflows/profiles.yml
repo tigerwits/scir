@@ -33,6 +33,7 @@ jobs:
       - run: python -m unittest discover -s tests -p "test_named_roles.py" -v
       - run: python -m unittest discover -s tests -p "test_structured.py" -v
       - run: python -m unittest discover -s tests -p "test_working*.py" -v
+      - run: python -m unittest discover -s tests -p "test_selection*.py" -v
       - run: python -m unittest discover -s tests -p "test_change*.py" -v
       - run: python -m unittest discover -s tests -p "test_guarded_changes.py" -v
       - run: python -m unittest discover -s tests -p "test_review_impact.py" -v

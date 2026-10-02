@@ -22,14 +22,16 @@ def register(subparsers) -> None:
     lower.add_argument("--operators", choices=("arithmetic/1",))
     knowledge = subparsers.add_parser("knowledge", help="validate, select or propose working/1 content")
     commands = knowledge.add_subparsers(dest="operation", required=True)
-    for name in ("check", "select", "affected", "propose"):
+    for name in ("check", "select", "affected", "propose", "diagnose"):
         command = commands.add_parser(name)
         command.add_argument("file", nargs="?", default="-")
         command.add_argument("--collection", required=True, help="host-supplied local collection identity")
         command.add_argument("--max-records", type=_positive, default=10_000)
         command.add_argument("--max-output-bytes", type=_positive, default=16_000_000)
-        if name == "select":
+        if name in ("select", "diagnose"):
             command.add_argument("--id", action="append", required=True)
+            if name == "diagnose":
+                command.add_argument("--encoding", choices=("native", "notation"), default="native")
         elif name == "affected":
             command.add_argument("--changed", action="append", required=True)
         elif name == "propose":
@@ -72,6 +74,10 @@ def execute(args, write) -> int:
             elif args.operation == "select":
                 result = select(index, tuple(args.id), max_records=args.max_records,
                                 limits=p.Limits(bytes=args.max_output_bytes)).as_dict()
+            elif args.operation == "diagnose":
+                from .diagnostics import diagnose
+                result = diagnose(index, tuple(args.id), encoding=args.encoding,
+                                  max_records=args.max_records, max_output_bytes=args.max_output_bytes)
             elif args.operation == "affected":
                 result = {"profile": VERSION, "collection": index.collection,
                           "source_snapshot": index.snapshot, "complete": True,
