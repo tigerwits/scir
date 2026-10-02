@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased source hardening
+
+- Explicit consumer boundaries for supersession, represented evidence and content
+  history. Small independent regressions check supersession direction, A-to-B-to-A
+  fingerprints, and native selection before bounded notation delivery.
+- Adoption guidance distinguishes historical source-byte integrity from current
+  behavioral compatibility. No language or existing response contract changes.
+
 ## 1.1.0 — 2026-10-02 (source implementation)
 
 Additive profiles and working-knowledge tools; native content format remains 1.0.
@@ -17,6 +25,8 @@ This source version does not itself publish a release or migrate existing files.
   commands retain their syntax, output and exit behavior.
 - Profile contracts, public API guidance, portable consumer reference and a runnable
   dual-notation example with independent native expected content.
+- The implementation was delivered in five slices: structured codecs; working
+  indexes and selection; guarded changes; optional notation; and integration.
 - Native source-byte sentinels, generated and exhaustive finite law tests, a small
   separate Lean closure/tree model, cross-platform distribution checks and measured
   synthetic payload/workflow envelopes. These do not establish agent task quality.
