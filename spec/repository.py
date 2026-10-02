@@ -13,17 +13,20 @@ from scir.profile import LimitError, ProfileError, read_fields, read_tuple
 
 if __package__:
     from .locations import declarations, local_file, read_source
+    from .projection import legacy_document, QUERY_FIELDS
 else:
     from locations import declarations, local_file, read_source
+    from projection import legacy_document, QUERY_FIELDS
 
 ROOT = Path(__file__).resolve().parents[1]
 COLLECTION = "scir-repository"
+SOURCES = ("spec/native.scir", "spec/knowledge.scir")
 KINDS = frozenset(("Requirement", "Decision", "Limitation", "Question"))
 AREAS = frozenset(("Core", "Syntax", "Patterns", "Tree", "Annotations", "Transport",
                    "Constraints", "CLI", "Structured", "Notation", "Working", "Changes",
                    "Workflow", "Evidence"))
 FIELDS = frozenset(("ownership", "source", "area", "tests", "models", "status",
-                    "dependsOn", "scope", "evidence", "reason", "supersedes"))
+                    "dependsOn", "scope", "evidence", "reason", "supersedes", "projection")) | QUERY_FIELDS
 
 
 def _leaf(term: Term, role: str) -> str:
@@ -62,8 +65,8 @@ def validate(document: Document, root: Path = ROOT) -> Index:
             raise ProfileError("unknown repository kind or field: " + record.id)
         if not {"ownership", "source", "area"} <= fields.keys():
             raise ProfileError("record needs ownership, source and area: " + record.id)
-        if _leaf(fields["ownership"], "ownership") != "index":
-            raise ProfileError("this catalog indexes document-owned statements")
+        if _leaf(fields["ownership"], "ownership") not in ("index", "record"):
+            raise ProfileError("ownership must be index or record")
         if _leaf(fields["area"], "area") not in AREAS:
             raise ProfileError("unknown repository area")
         location(fields["source"], "section")
@@ -79,32 +82,125 @@ def validate(document: Document, root: Path = ROOT) -> Index:
                 location(item, kind)
         if record.kind in ("Decision", "Question") and "status" not in fields:
             raise ProfileError("decision/question needs an authored status")
+    projected = legacy_document(index)
+    if projected:
+        issues = _legacy().validate_catalog(projected, root)
+        if issues:
+            raise ProfileError("invalid legacy projection: " + "; ".join(i.message for i in issues))
     return index
 
 
+def _legacy():
+    if __package__:
+        from . import check
+    else:
+        import check
+    return check
+
+
 def load(root: Path = ROOT) -> Index:
-    source = read_source(local_file(root, "spec/knowledge.scir", ".scir"))
-    document = parse_document(source)
-    if format_document(document) != source:
-        raise ProfileError("repository knowledge must use canonical native SCIR")
+    document = ()
+    for name in SOURCES:
+        source = read_source(local_file(root, name, ".scir"))
+        shard = parse_document(source)
+        if format_document(shard) != source:
+            raise ProfileError("repository knowledge must be canonical: " + name)
+        document += shard
     return validate(document, root)
+
+
+def updates(index: Index, root: Path = ROOT):
+    """Preflight all three derived destinations before the caller writes any."""
+    projected = legacy_document(index)
+    if not projected:
+        raise ProfileError("maintained repository requires native projection records")
+    legacy = local_file(root, "spec/requirements.scir", ".scir")
+    expected = format_document(projected).encode("utf-8")
+    changes = [] if legacy.read_bytes() == expected else [(legacy, expected)]
+    changes.extend(_legacy().view_updates(projected, root))
+    return changes
+
+
+def propose_checked(index: Index, request: str, root: Path = ROOT):
+    """Generic candidate acceptance is weaker than repository-source acceptance."""
+    from scir.changes import propose
+    proposal = propose(index, request)
+    candidate = validate(proposal.document, root)
+    updates(candidate, root)  # Preflight derived views, but do not write them.
+    return proposal
+
+
+def maintenance(root: Path = ROOT, *, write_views=False, markdown=False) -> int:
+    try:
+        # Location resolvers return absolute canonical paths, including on macOS
+        # temporary-directory aliases and Windows case/short-name aliases.
+        root = root.resolve()
+        index = load(root)
+        changes = updates(index, root)
+        if changes and not write_views:
+            raise ProfileError("stale derived files: " + ", ".join(p.relative_to(root).as_posix() for p, _ in changes))
+        if write_views:
+            for path, data in changes:
+                path.write_bytes(data)
+            print(f"Refreshed {len(changes)} derived files; authoritative records were not changed.")
+        elif markdown:
+            print(_legacy().render(legacy_document(index)), end="")
+        else:
+            print(f"Checked {len(index.records)} repository records and all derived views; linked tests were not run.")
+        return 0
+    except ProfileError as error:
+        print(str(error), file=sys.stderr)
+        return 1
+    except (ValueError, OSError, RecursionError) as error:
+        print(f"repository check incomplete: {error}", file=sys.stderr)
+        return 2
+
+
+def _emit(stream, value):
+    raw = (json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+    if len(raw) > 16_000_000:
+        raise LimitError("repository packet byte limit exceeded")
+    if hasattr(stream, "buffer"):
+        stream.flush()
+        stream.buffer.write(raw)
+    else:
+        stream.write(raw.decode("utf-8"))
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.parse_args(argv)
+    sub = parser.add_subparsers(dest="command")
+    sub.add_parser("check")
+    sub.add_parser("refresh")
+    pick = sub.add_parser("select")
+    pick.add_argument("--id", action="append", required=True)
+    review = sub.add_parser("affected")
+    review.add_argument("--changed", action="append", required=True)
+    change = sub.add_parser("propose")
+    change.add_argument("--change", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.command in (None, "check", "refresh"):
+        return maintenance(write_views=args.command == "refresh")
     try:
+        from scir.knowledge import select, affected
         index = load()
-        print(json.dumps({"contract": "scir-repository/1", "records": len(index.records),
-                          "snapshot": index.snapshot, "locations": "resolved",
-                          "tests_executed": False, "proofs_checked": False}))
+        if args.command == "select":
+            result = select(index, tuple(args.id)).as_dict()
+        elif args.command == "affected":
+            result = {"collection": COLLECTION, "source_snapshot": index.snapshot,
+                      "review_ids": affected(index, tuple(args.changed))}
+        else:
+            request = read_source(args.change)
+            result = propose_checked(index, request).as_dict()
+        result["repository_contract"] = "scir-repository/1"
+        _emit(sys.stdout, result)
         return 0
-    except LimitError as error:
-        print(str(error), file=sys.stderr)
-        return 2
+    except ProfileError as error:
+        _emit(sys.stderr, {"status": "rejected", "error": str(error)})
+        return 1
     except (ValueError, OSError, RecursionError) as error:
-        print(str(error), file=sys.stderr)
-        return 1 if isinstance(error, ValueError) else 2
+        _emit(sys.stderr, {"status": "incomplete", "error": str(error)})
+        return 2
 
 
 if __name__ == "__main__":

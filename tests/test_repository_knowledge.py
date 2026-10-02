@@ -15,12 +15,13 @@ ROOT = Path(__file__).resolve().parents[1]
 def fixture(root):
     for directory in ("docs", "tests", "proofs", "spec"):
         (root / directory).mkdir()
-    (root / "docs/rules.md").write_text("# Rules\n\n```text\n# Hidden\n```\n", encoding="utf-8")
+    (root / "spec/native.scir").write_text("", encoding="utf-8", newline="\n")
+    (root / "docs/rules.md").write_text("# Rules\n\n```text\n# Hidden\n```\n", encoding="utf-8", newline="\n")
     (root / "tests/test_rule.py").write_text(
         "import unittest\nraise RuntimeError('must not execute')\n"
-        "class RuleTests(unittest.TestCase):\n    def test_rule(self): pass\n", encoding="utf-8")
+        "class RuleTests(unittest.TestCase):\n    def test_rule(self): pass\n", encoding="utf-8", newline="\n")
     (root / "proofs/Laws.lean").write_text(
-        "/- theorem fake : True := by trivial -/\ntheorem rule : True := by trivial\n", encoding="utf-8")
+        "/- theorem fake : True := by trivial -/\ntheorem rule : True := by trivial\n", encoding="utf-8", newline="\n")
 
 
 def record(identifier="R", kind="Requirement", **extra):
@@ -33,11 +34,11 @@ def record(identifier="R", kind="Requirement", **extra):
 
 
 class RepositoryKnowledgeTests(unittest.TestCase):
-    def test_authored_catalog_and_legacy_ownership_are_disjoint(self):
+    def test_authored_catalog_and_legacy_projection_share_preserved_ids(self):
         index = load(ROOT)
-        self.assertEqual(len(index.records), 24)
+        self.assertEqual(len(index.records), 54)
         legacy = parse_document((ROOT / "spec/requirements.scir").read_text(encoding="utf-8"))
-        self.assertFalse(set(index.records) & {t.args[0].symbol for t in legacy if t.symbol == "requirement"})
+        self.assertTrue({t.args[0].symbol for t in legacy if t.symbol == "requirement"} <= set(index.records))
         packet = select(index, ("NamedRoles",))
         self.assertTrue({"NamedRoles", "OptionalRoles", "TupleArity", "ModelProofBoundary"} <= set(packet.selected_ids))
         self.assertIn("test_duplicate_unsorted_and_misplaced_fields_fail", format_document(packet.document))
@@ -68,7 +69,7 @@ class RepositoryKnowledgeTests(unittest.TestCase):
                 item = record(source=Term("section", (Term("docs/rules.md"), Term(name))))
                 with self.assertRaises(ValueError):
                     validate((item,), root)
-            (root / "docs/rules.md").write_text("# Rules\n# Rules\n", encoding="utf-8")
+            (root / "docs/rules.md").write_text("# Rules\n# Rules\n", encoding="utf-8", newline="\n")
             with self.assertRaises(ValueError):
                 validate((record(),), root)
 
@@ -109,9 +110,9 @@ class RepositoryKnowledgeTests(unittest.TestCase):
             root = Path(tmp)
             fixture(root)
             path = root / "spec/knowledge.scir"
-            path.write_text(format_document((record(),)), encoding="utf-8")
+            path.write_text(format_document((record(),)), encoding="utf-8", newline="\n")
             self.assertEqual(tuple(load(root).records), ("R",))
-            path.write_text(str(record()), encoding="utf-8")
+            path.write_text(str(record()), encoding="utf-8", newline="\n")
             with self.assertRaises(ProfileError):
                 load(root)
             with self.assertRaises(ProfileError):

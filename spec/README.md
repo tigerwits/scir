@@ -1,110 +1,86 @@
-# Maintained content, Markdown views
+# Repository knowledge and derived views
 
-This is one optional documentation workflow. Human-facing Markdown can also be
-freely authored; [the knowledge examples](../examples/knowledge/README.md) show
-that arrangement. Only the explicitly marked sections below are generated.
-
-[requirements.scir](requirements.scir) holds project requirements and their
-relationships. For **query and occurrence behavior**, it also owns the exact
-normative wording, API notes, and executable examples. Two Markdown sections are
-rendered from those records; they are not separately maintained accounts.
+The repository maintains one `scir-repository` working collection in two explicit
+canonical record shards. Read [ownership](OWNERSHIP.md) before changing content.
 
 ```text
-requirements.scir
-    → SPEC.md: occurrence and query rules
-    → docs/api.md: the same rules, notes, and runnable examples
+native.scir + knowledge.scir
+    -> validated working/1 collection
+    -> whole-context selection, dependency review, guarded candidates
+    -> requirements.scir (derived native compatibility catalog)
+        -> SPEC.md: marked occurrence/query paragraphs
+        -> docs/api.md: marked rules, notes and executable examples
 ```
 
-Other topics remain an index: their obligation terms are shorthand and their
-linked Markdown definitions are still authoritative. The marked query paragraphs
-in [SPEC.md](../SPEC.md) remain the published contract; edit their SCIR source.
-This is a repository workflow, not an addition to SCIR's runtime or format.
+`native.scir` preserves the original 30 requirement IDs, obligation terms,
+source/test links, six exact query wording records and three query examples.
+`knowledge.scir` covers the added profiles, decisions, limitations and open work.
+Only the explicitly marked query material is generated into Markdown. The other
+specification sections and human explanations remain authored; there is no
+blanket Markdown migration or documentation template language.
 
-## Use
+## Check, select and review
 
-From an installed checkout:
+From the installed project interpreter:
 
-```bash
+```sh
 python spec/check.py
+python spec/check.py --markdown
+python spec/check.py knowledge select --id NamedRoles
+python spec/check.py knowledge select --id RootScope
+python spec/check.py knowledge affected --changed PreserveCallArity
+python spec/check.py knowledge propose --change change.json
+```
+
+Selection starts from known IDs and follows all explicit references, returning
+whole records with their source snapshot and context. It does not discover
+unwritten dependencies or infer facts. Review candidates follow only reverse
+`dependsOn` relationships. A source link is not evidence of a successful run.
+
+Change requests use `scir-change/1` and the full combined collection snapshot.
+The repository wrapper rejects candidates that pass generic `working/1` but break
+local source/test/model links or query projection. It returns a full candidate
+without writing source. Stronger authorization, Git revision guards, persistence
+and partitioning the candidate back into the source shards belong to the host.
+
+## Refresh only the derived material
+
+After an explicitly reviewed source-record edit:
+
+```sh
+python spec/check.py --write-views
+python spec/check.py
+python -m unittest discover -s tests -v
+```
+
+Default checking fails on stale outputs without writing. Refresh preflights all
+three destinations, preserves Markdown outside the markers and leaves both
+source shards untouched. These are not atomic multi-file filesystem writes.
+Inspect the diff and run independent tests; rendering never makes a claim true.
+
+The native dialect still supports direct inspection of the derived catalog:
+
+```sh
 python -m scir query spec/requirements.scir --pattern 'topic(?id, Queries)'
 python -m scir query spec/requirements.scir --pattern 'wording(RootScope, ?text)'
 python -m scir query spec/requirements.scir --pattern 'coveredBy(RootScope, ?test)'
-python spec/check.py --write-views
-python spec/check.py --markdown
 ```
 
-The default command validates the catalog, runs its query examples, and rejects
-stale generated sections without writing. `--write-views` explicitly refreshes
-only the marked sections after validation and destination preflight. Everything
-outside those markers is preserved. `--markdown` prints a requirement index.
-None of these commands runs the linked test suite.
+The existing `validate_catalog`, query example and renderer functions remain
+available for independently supplied legacy catalogs and regression fixtures.
+They are a compatibility adapter, not another authored account of the project.
 
-## Records
+## What checks establish
 
-The existing index forms are:
+Static checks resolve one exact Markdown heading outside triple-backtick fences,
+a direct test method in a top-level `unittest.TestCase` subclass, or a simple Lean
+theorem declaration. File paths are repository-relative, bounded and cannot use
+traversal or symlinks. No linked test or proof is executed by location checking.
+Query examples call only the public SCIR query API with authored expected paths.
 
-```scir
-requirement(NoEmptyCall, Syntax, rejects("Alice()"))
-specifiedBy(NoEmptyCall, section("SPEC.md", "Surface grammar"))
-coveredBy(NoEmptyCall, test("tests/test_surface.py", "SurfaceTests.test_empty_application_is_invalid_in_both_languages"))
-```
-
-Each requirement has a unique leaf ID, an area leaf, and a ground obligation.
-Areas are `Core`, `Syntax`, `Patterns`, `Tree`, `Annotations`, `Transport`,
-`Constraints`, and `CLI`. Payload vocabulary stays open. Each requirement needs
-at least one valid source link and test link. Forward links are allowed;
-duplicate IDs, duplicate links, unknown targets, and an empty catalog fail.
-
-The migrated topic adds four forms:
-
-| Form | Meaning |
-| --- | --- |
-| `topic(id, Queries)` | Select this requirement for both query views, in topic-record order. |
-| `wording(id, text)` | One exact normative text leaf for each selected requirement. |
-| `note(id, text)` | An optional API note for a selected requirement. |
-| `queryExample(name, id, input(...), pattern, scope, paths(...))` | A named executable query example attached to a selected requirement. |
-
-An example's `input` children are its document roots. Its pattern is a text leaf,
-not a content capture. Scope is `default`, `roots`, or `all`; `default` omits the
-Python scope argument. Expected paths use `path("0", "1")` with nonnegative
-integer labels. A leaf `paths` means no matches. Names are unique within examples;
-requirements and examples have separate ID namespaces. Examples render in source
-order. The checker parses patterns and invokes `query`; it never evaluates labels
-or runs Python copied from text leaves.
-
-The two renderers are fixed project functions, not a template language. The
-specification view selects wording. The API view adds notes and Python examples.
-The entire selection is recomputed, so a newly added topic member or example is
-noticed as well as changes to existing records. Input order is intentional.
-
-## References and checks
-
-A section names one exact Markdown heading outside triple-backtick fences. A test
-names a direct `test_*` method of a top-level `unittest.TestCase` subclass in a
-`tests/test_*.py` file. Paths are repository-relative; traversal, absolute paths,
-backslashes, and symlinks fail. This is the suite's convention, not general Python
-test discovery. Test files are parsed as ASTs, never imported by the checker.
-
-A source link from a migrated requirement points to its rendered contract, not a
-second editable definition. A valid test link is a declared relationship, not
-proof of test execution or adequacy. Query examples check expected paths; the
-independent kernel and conformance tests remain necessary.
-
-Exit codes: **0** means checks passed (or views refreshed), **1** means invalid,
-noncanonical, or stale content, and **2** means checking could not complete.
-The checkout and helper are trusted project code, not an untrusted-input sandbox.
-Writes are preflighted together but are not a multi-file filesystem transaction.
-
-## Change the content, not its retelling
-
-Find the affected IDs, inspect the wording and linked tests, then edit the source
-record. Run the checks, refresh the views, inspect the diff, and run the test suite.
-Do not resolve a stale-view failure by independently rewriting generated prose.
-An intentional behavior change still requires review and implementation changes;
-rendering does not make a new statement true.
-
-The maintenance tests cover wording changes, newly selected records, stale views,
-manual view edits, and a renamed test reference. Test expectations remain
-independent rather than being generated from the same records.
-
-The catalog and helper ship in the source distribution, not the runtime wheel.
+A payload with a valid citation may still be wrong. Separate source review,
+independent test execution, model checking and agent trials from bookkeeping.
+Exit 0 means the requested checks completed; 1 means rejection or stale content;
+2 means checking could not complete. New selection/proposal errors emit no partial
+success. The catalog and maintenance tools ship in the source distribution,
+not the runtime wheel.
