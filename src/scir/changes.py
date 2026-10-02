@@ -162,40 +162,49 @@ def propose(index: Index, source: str, *, limits: p.Limits = p.Limits(),
                            max_operations=max_operations, limits=limits)
     if request.collection != index.collection or request.expected_snapshot != index.snapshot:
         raise ConflictError("collection or source snapshot precondition failed")
-    candidate = {i: r.term for i, r in index.records.items()}
-    touched, created = {}, []
+    # Check the complete write set before rebuilding any record. Distinct slots
+    # commute; a whole-record operation conflicts with every other write to its ID.
+    groups, touched = {}, {}
     for operation in request.operations:
-        op, identifier = operation.op, operation.id
+        identifier = operation.id
         slots = touched.setdefault(identifier, set())
-        whole = op in ("createRecord", "deleteRecord")
-        slot = ("whole", "") if whole else (("payload", "") if op == "replacePayload" else ("field", operation.field))
+        whole = operation.op in ("createRecord", "deleteRecord")
+        slot = ("whole", "") if whole else (("payload", "") if operation.op == "replacePayload" else ("field", operation.field))
         if (whole and slots) or ("whole", "") in slots or slot in slots:
             raise ConflictError("conflicting operations for record: " + identifier)
         slots.add(slot)
-        if op == "createRecord":
+        if operation.op == "createRecord":
             if identifier in index.records:
                 raise ConflictError("create requires an absent record: " + identifier)
-            candidate[identifier] = operation.value
+        elif identifier not in index.records:
+            raise ConflictError("operation requires an existing record: " + identifier)
+        if operation.op == "removeField" and operation.field not in dict(index.records[identifier].fields):
+            raise ConflictError("remove requires an existing field: " + operation.field)
+        groups.setdefault(identifier, []).append(operation)
+
+    candidate = {i: r.term for i, r in index.records.items()}
+    created = []
+    for identifier, operations in groups.items():
+        first = operations[0]
+        if first.op == "createRecord":
+            candidate[identifier] = first.value
             created.append(identifier)
             continue
-        if identifier not in candidate:
-            raise ConflictError("operation requires an existing record: " + identifier)
-        if op == "deleteRecord":
+        if first.op == "deleteRecord":
             del candidate[identifier]
             continue
-        old = candidate[identifier]
-        args, fields = p._split(old)
-        payload, values = args[2], dict(fields)
-        if op == "replacePayload":
-            payload = operation.value
-        elif op == "setField":
-            values[operation.field] = operation.value
-        else:
-            if operation.field not in values:
-                raise ConflictError("remove requires an existing field: " + operation.field)
-            del values[operation.field]
-        candidate[identifier] = p.application("record", (args[0], args[1], payload),
-                                               fields=tuple(values.items()), limits=limits)
+        record = index.records[identifier]
+        payload, values = record.payload, dict(record.fields)
+        for operation in operations:
+            if operation.op == "replacePayload":
+                payload = operation.value
+            elif operation.op == "setField":
+                values[operation.field] = operation.value
+            else:
+                del values[operation.field]
+        # Each affected record is assembled once, not once per changed field.
+        candidate[identifier] = p.application("record", (Term(record.id), Term(record.kind), payload),
+                                              fields=tuple(values.items()), limits=limits)
     # Preserve surviving order; append creates, including forward/cyclic references.
     order = tuple(i for i in index.records if i in candidate) + tuple(created)
     document = tuple(candidate[i] for i in order)
