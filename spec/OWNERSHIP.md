@@ -74,3 +74,28 @@ Compact notation is a delivery/authoring option, not a second maintained copy.
 No source rewrite guesses whether to edit an alias definition or one occurrence.
 The external grill remains independent and version-pinned; its historical
 experiments and evidence must not be retargeted to make current checks pass.
+
+## Shared checks and historical evidence
+
+`locations.py` is the single static path/heading/test/model resolver for both
+catalog representations. It inspects LF, CRLF and CR source without rewriting
+bytes. Its 2 MB per-file inspection bound also applies to legacy catalog links;
+exhaustion is an incomplete check, never proof that a location is absent. The
+legacy entrypoint and ordered diagnostics remain available as compatibility
+adapters; their independent conformance expectations are not generated from the
+working records.
+
+The former current-source hash assertion now lives in the explicit historical
+[baseline checker](../tools/check_native_baseline.py) and its separate CI job.
+It checks the five recorded native files at commit `3ceeb1e`, not current HEAD.
+Historical exact-byte identity and present-day behavioral compatibility are
+different obligations. Current format, digest, transport, query, scope and
+negative-control tests remain mandatory; source reformatting is not itself a
+format break. This cleanup changes no runtime code or conformance vector.
+Historical reports still describe the actual revisions they measured.
+
+Keep independently constructed expected results even when they resemble runtime
+code. Remove duplicated implementations only after replacement checks exist.
+The private grill is an additional challenge, not a required private dependency
+of this repository's test suite. Finite scenarios, model proofs and actual agent
+trials remain distinct evidence categories.
