@@ -15,10 +15,10 @@ from test_native_projection import native_record
 def prepare(root):
     fixture(root)
     for name, key in (("SPEC.md", "query-spec"), ("docs/api.md", "query-api")):
-        (root / name).write_text(f"# Public\n\nOutside stays.\n<!-- scir:{key}:start -->\nstale\n<!-- scir:{key}:end -->\nTail stays.\n", encoding="utf-8")
-    (root / "spec/native.scir").write_text(format_document((native_record(),)), encoding="utf-8")
-    (root / "spec/knowledge.scir").write_text("", encoding="utf-8")
-    (root / "spec/requirements.scir").write_text("old\n", encoding="utf-8")
+        (root / name).write_text(f"# Public\n\nOutside stays.\n<!-- scir:{key}:start -->\nstale\n<!-- scir:{key}:end -->\nTail stays.\n", encoding="utf-8", newline="\n")
+    (root / "spec/native.scir").write_text(format_document((native_record(),)), encoding="utf-8", newline="\n")
+    (root / "spec/knowledge.scir").write_text("", encoding="utf-8", newline="\n")
+    (root / "spec/requirements.scir").write_text("old\n", encoding="utf-8", newline="\n")
 
 
 def request(index, operations):
@@ -48,7 +48,7 @@ class RepositoryWorkflowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             prepare(root)
-            (root / "docs/api.md").write_text("missing markers", encoding="utf-8")
+            (root / "docs/api.md").write_text("missing markers", encoding="utf-8", newline="\n")
             before = {p:p.read_bytes() for p in root.rglob("*") if p.is_file()}
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 self.assertEqual(repository.maintenance(root, write_views=True), 2)
@@ -72,7 +72,7 @@ class RepositoryWorkflowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             prepare(root)
-            (root / "spec/knowledge.scir").write_text(format_document((record("P"),)), encoding="utf-8")
+            (root / "spec/knowledge.scir").write_text(format_document((record("P"),)), encoding="utf-8", newline="\n")
             index = repository.load(root)
             old_request = request(index, [{"op":"setField", "id":"R", "field":"reason", "value":"reviewed"}])
             intervening = repository.propose_checked(index, request(index, [
