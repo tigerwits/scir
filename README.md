@@ -171,6 +171,25 @@ reference checks, composition, and failure handling. The [dialect chain](example
 keeps a source fixed while adding vocabulary, record, and reference constraints.
 It also shows when a stricter contract must be blocked rather than filled by guessing.
 
+## Named dialects
+
+Use [named contracts](docs/dialect-contracts.md) to compose trusted rules with
+explicit prerequisites and fixed external context. Results distinguish passed,
+rejected, blocked and incomplete checks and bind all declared input identities.
+The [profile helpers](docs/dialect-rules.md) check named fields and reference kinds
+without closing arbitrary IDs or literal text. These APIs do not load rule code
+from content and do not certify truth, authorization or translation fidelity.
+
+```bash
+python examples/consumer-lifecycle/dialect_run.py
+python tools/check_dialects.py
+```
+
+The consumer uses fixed receipt test doubles. The repository example checks its
+real source contract on an isolated input copy. Both leave authoritative sources
+unchanged. The older low-level constraint API and custom dialect examples remain
+supported; the archived refinement prototype is not an installed runtime module.
+
 ## Optional notation and working knowledge
 
 Package 1.1 adds opt-in profiles without changing native format 1.0. In explicitly

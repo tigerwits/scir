@@ -2,3 +2,4 @@
 SPEC.md text eol=lf
 docs/api.md text eol=lf
 examples/knowledge/**/source.md text eol=lf
+examples/dialect-chain/source.md text eol=lf

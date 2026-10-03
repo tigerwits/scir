@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased: named dialect contracts
+
+- Add optional named rule plans, ordered composition and immutable external contexts.
+- Add snapshot-bound validation results with explicit failed, blocked and incomplete checks.
+- Keep native format 1.0, the original constraint helpers and existing profiles unchanged.
+
 ## Unreleased source hardening
 
 - Bounded selection diagnostics with exact content/envelope bytes, explicit edge

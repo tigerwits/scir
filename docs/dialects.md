@@ -4,6 +4,10 @@ A dialect selects a subset of SCIR documents. It changes neither the content
 kernel nor its syntax. `scir.constraints` provides optional acceptance checks;
 it leaves structural `validate`, the CLI, and fingerprints unchanged.
 
+For named, versioned plans with prerequisite gates and input-bound results, use
+the additive [dialect contract API](dialect-contracts.md). The low-level API below
+remains unchanged. The archived refinement experiment is not activated.
+
 ## Small API
 
 ```python
@@ -23,9 +27,10 @@ assert issue.path == (0, 2)
 assert issue.rule == "vocabulary"
 ```
 
-Both documents are valid SCIR; only the first conforms. A dialect is an ordered
-collection of functions, not a registry or class. Applications name and version
-it. Combine collections with tuple concatenation.
+Both documents are valid SCIR; only the first conforms. At this low-level API,
+a dialect is an ordered collection of functions. Applications name and version
+it, or use the named contract layer. Combine low-level collections with tuple
+concatenation.
 
 | Name in `scir.constraints` | Contract |
 |---|---|

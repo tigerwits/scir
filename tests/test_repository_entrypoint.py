@@ -21,7 +21,7 @@ class RepositoryEntrypointTests(unittest.TestCase):
     def test_default_and_selected_context_share_the_full_source_snapshot(self):
         result = run()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(b"57 repository records", result.stdout)
+        self.assertIn(b"60 repository records", result.stdout)
         result = run("knowledge", "select", "--id", "NamedRoles")
         self.assertEqual(result.returncode, 0, result.stderr)
         packet = json.loads(result.stdout)
@@ -55,7 +55,7 @@ class RepositoryEntrypointTests(unittest.TestCase):
             proposal = json.loads(result.stdout)
             self.assertEqual(proposal["before_snapshot"], index.snapshot)
             self.assertNotEqual(proposal["candidate_snapshot"], index.snapshot)
-            self.assertEqual(len(proposal["records"]), 57)
+            self.assertEqual(len(proposal["records"]), 60)
             self.assertEqual([w["path"] for w in proposal["write_plan"]], ["spec/knowledge.scir"])
             request["expected_snapshot"] = "0" * 64
             path.write_text(json.dumps(request), encoding="utf-8")

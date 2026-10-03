@@ -1,8 +1,7 @@
 {
   "repository": "tigerwits/scir",
   "branches": {
-    "workflow/boundaries": "2472a794076a4adeded6c43269a7ffb6ee468cf0",
-    "workflow/diagnostics": "3740ab0602fd49dfcd6d76cd1f5080162addd79f",
-    "workflow/delivery": "5a2c69905cbad12ef172882067274e867fe4a537"
+    "dialects/contracts": "152d5d8b7c590d54371d07bc2740c4f104d90553",
+    "dialects/profile-rules": "9e2d3746643d3114f826c221129322adc1f61084"
   }
 }

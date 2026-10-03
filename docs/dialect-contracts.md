@@ -85,3 +85,29 @@ Evaluate the complete candidate under the required Dialect and fixed Context.
 Do not promote a rejected or incomplete result to a checked candidate. Keep both
 the generic source snapshot and external context/input-basis guard at the host's
 atomic commit boundary. This API does not supply persistent commit semantics.
+
+## Profile helpers and runnable integration
+
+The [profile helpers](dialect-rules.md) adapt structured/1 and working/1 and check
+record fields and reference kinds. The existing consumer lifecycle owns its
+conditional approval/evidence rules; `dialect.py` wraps those rules without
+changing the older `policy.check` API. Run:
+
+```sh
+python examples/consumer-lifecycle/dialect_run.py
+python tools/check_dialects.py
+```
+
+The first command uses fixed approval/receipt test doubles. It prints accepted,
+rejected and incomplete results; tests context revision conflicts; and revalidates
+selected content instead of copying the original result. No live receipt is read.
+The second uses SCIR's real repository records. It creates an exclusive temporary
+copy of every guarded input file, evaluates the existing repository contract on
+that fixed copy, then recaptures the source basis and checker file identities.
+It leaves the checkout unchanged and does not run the linked tests or proofs.
+This is a fixed-input validation example, not an atomic shared-storage transaction.
+
+Both examples identify the local checker/configuration and installed runtime
+files by their hashes. Their source identity is not a signature or proof that a
+remote process ran. Hosts must pin the actual loaded build and verify their own
+external inputs. Do not let candidate content choose a different contract.

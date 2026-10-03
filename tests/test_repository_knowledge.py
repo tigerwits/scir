@@ -36,7 +36,7 @@ def record(identifier="R", kind="Requirement", **extra):
 class RepositoryKnowledgeTests(unittest.TestCase):
     def test_authored_catalog_and_legacy_projection_share_preserved_ids(self):
         index = load(ROOT)
-        self.assertEqual(len(index.records), 57)
+        self.assertEqual(len(index.records), 60)
         self.assertTrue({"SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"} <= set(index.records))
         for identifier in ("SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"):
             self.assertIn("NoAgentTrials", select(index, (identifier,)).selected_ids)
