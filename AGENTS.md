@@ -38,6 +38,11 @@ and encoding capacity. Optional `select/propose --view compact` responses retain
 the basis digests; retrieve the hash-bound artifact for the complete basis and
 write plan. A proposal delta is not complete context. Read the [delivery contract](docs/workflow-tools.md).
 
+For dialect changes, read [named contracts](docs/dialect-contracts.md) and run
+`python tools/check_dialects.py`. It validates the existing repository contract
+through the named engine on a fixed file copy, with before/after basis checks.
+Contract names and result hashes are identities, not permission or execution proof.
+
 ## Authored prose and working knowledge
 
 Markdown is not required to be generated. Outside the two marked query sections,
@@ -68,6 +73,8 @@ Install the checkout or set `PYTHONPATH=src`, then run:
 python spec/check.py
 python -m unittest discover -s tests -v
 python tools/check_self_host.py
+python tools/check_dialects.py
+python examples/consumer-lifecycle/dialect_run.py
 python examples/consumer-lifecycle/run.py
 python tools/check_properties.py
 python tools/study_corpus.py

@@ -95,3 +95,23 @@ replace that operation with a check followed by an unguarded file write. The
 [workflow tools](../../docs/workflow-tools.md) keep complete context separate from
 proposal deltas; the [repository handoff](../../spec/HANDOFF.md) retains file bases
 and source-owned plans. Those interfaces do not supply the missing host authority.
+
+## Named dialect and result handoff
+
+Run `python examples/consumer-lifecycle/dialect_run.py` to use the additive named
+contract API. The adapter composes structured, working, field, reference-kind and
+existing consumer-policy checks. `FIELDS` in `policy.py` remains the one owner
+of allowed kinds and fields. No second policy vocabulary is introduced.
+
+The host converts its fixed `TrustedInputs` into a separate immutable Context.
+Its revision and exact contents are bound to each result. The example rejects an
+old context guard even when the SCIR document did not change. Malformed host
+context yields incomplete validation, not a claim that the candidate is false.
+A checked proposal returns the complete generic candidate and a conforming result;
+failed or incomplete policy cannot return a successfully checked candidate.
+
+A result for the full collection is not copied onto a selected subset. The runner
+checks the subset again. The regression tests include a consumer requiring an
+independent record that reference closure omits. Callers must not assume arbitrary
+dialects are preserved by selection, concatenation or editing. Source and service
+writes still require the host's atomic guards. All receipt inputs remain test doubles.

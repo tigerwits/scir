@@ -207,3 +207,11 @@ The [consumer lifecycle example](../examples/consumer-lifecycle/README.md) shows
 trusted policy, evidence requirements and explicit replacement resolution. Those
 rules belong to that example, not the generic library. A status label, represented
 receipt or successful generic parse cannot authenticate execution or approval.
+
+## Named acceptance contracts
+
+`scir.dialects` composes named trusted rules and returns content-, collection-,
+contract- and context-bound results. See [the contract](dialect-contracts.md) and
+[profile-aware helpers](dialect-rules.md). Existing profile exceptions, knowledge
+commands and default response shapes are unchanged. Dialect code is selected by
+the host, never loaded from a document or a command-line module string.

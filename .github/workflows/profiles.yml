@@ -36,6 +36,7 @@ jobs:
       - run: python -m unittest discover -s tests -p "test_selection*.py" -v
       - run: python -m unittest discover -s tests -p "test_delivery*.py" -v
       - run: python -m unittest discover -s tests -p "test_consumer_lifecycle.py" -v
+      - run: python -m unittest discover -s tests -p "test_dialect*.py" -v
       - run: python -m unittest discover -s tests -p "test_repository_delivery.py" -v
       - run: python -m unittest discover -s tests -p "test_change*.py" -v
       - run: python -m unittest discover -s tests -p "test_guarded_changes.py" -v

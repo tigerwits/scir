@@ -23,7 +23,7 @@ def main():
     wheels, archives = list((root/'dist').glob('*.whl')), list((root/'dist').glob('*.tar.gz'))
     if len(wheels) != 1 or len(archives) != 1:
         raise ValueError('build exactly one wheel and one source distribution first')
-    required = {'profile.py', 'knowledge.py', 'changes.py', 'notation.py', '_profile_cli.py', 'diagnostics.py', 'delivery.py'}
+    required = {'profile.py', 'knowledge.py', 'changes.py', 'notation.py', '_profile_cli.py', 'diagnostics.py', 'delivery.py', 'dialects.py', 'dialect_rules.py'}
     content = package_bytes(wheels[0])
     assert all('scir/'+name in content for name in required)
     with tarfile.open(archives[0]) as archive:
@@ -31,7 +31,9 @@ def main():
         assert {'proofs/ProfileLaws.lean', 'proofs/lean-toolchain', 'docs/profiles-api.md',
                 'examples/working-profile/notes.scix', 'tools/study_profiles.py',
                 'examples/consumer-lifecycle/policy.py', 'examples/consumer-lifecycle/notes.scir',
-                'docs/workflow-tools.md', 'tools/study_delivery.py'} <= names
+                'docs/workflow-tools.md', 'tools/study_delivery.py',
+                'docs/dialect-contracts.md', 'docs/dialect-rules.md', 'tools/check_dialects.py',
+                'examples/consumer-lifecycle/dialect.py', 'examples/consumer-lifecycle/dialect_run.py'} <= names
     with tempfile.TemporaryDirectory() as temp:
         workspace = Path(temp)
         rebuilt = workspace/'rebuilt'
@@ -49,8 +51,13 @@ from scir.knowledge import build_index, select
 from scir.changes import propose
 from scir.diagnostics import diagnose
 from scir.delivery import selection
+from scir.dialects import Context, Dialect, from_constraint, evaluate
+from scir.dialect_rules import working
 assert pathlib.Path(scir.__file__).resolve().is_relative_to(pathlib.Path(__import__('sys').argv[1]).resolve())
 assert scir.FORMAT_VERSION == "1.0"
+dialect = Dialect("installed", "1", (from_constraint("working", "1", "a"*64, working),))
+receipt = evaluate((), dialect, Context("fixture", "1"), collection="installed")
+assert receipt.conforms and receipt.matches((), dialect, Context("fixture", "1"), collection="installed")
 doc = lower('record(A, Note, t"literal")')
 index = build_index(doc, collection="installed")
 assert select(index, ("A",)).document == doc

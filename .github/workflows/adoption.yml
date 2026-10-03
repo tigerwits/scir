@@ -32,6 +32,8 @@ jobs:
           python skills/scir/scripts/working_example.py > "$GITHUB_WORKSPACE/.build/consumer.json"
           python tools/check_self_host.py > "$GITHUB_WORKSPACE/.build/self-host.json"
           python examples/consumer-lifecycle/run.py > "$GITHUB_WORKSPACE/.build/lifecycle.json"
+          python examples/consumer-lifecycle/dialect_run.py > "$GITHUB_WORKSPACE/.build/dialect-lifecycle.json"
+          python tools/check_dialects.py > "$GITHUB_WORKSPACE/.build/dialect-repository.json"
       - name: Retain exact tested source and distributions
         run: |
           git diff --exit-code
@@ -44,6 +46,8 @@ jobs:
             .build/consumer.json
             .build/self-host.json
             .build/lifecycle.json
+            .build/dialect-lifecycle.json
+            .build/dialect-repository.json
             .build/source-revision.txt
             .build/source.tar.gz
             dist/

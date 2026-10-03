@@ -69,3 +69,21 @@ agent without explicit review and authorization. The skill grants no permissions
 Record the selected contract/version and context snapshot when reporting results.
 A content fingerprint alone is not a validation certificate. Checks that consult
 changing network, clock, or database state are not deterministic over content alone.
+
+## Named contracts and fixed context
+
+With the additive `scir.dialects` API, the host names/version-controls Rule and
+Dialect descriptors. It supplies an implementation SHA-256 and immutable Context
+with its own revision. Compose approved parents without removing, overriding or
+reordering inherited checks. A prerequisite must pass before its dependent runs.
+Use `from_constraint` for old rules; `scir.dialect_rules` adds structured/working
+adapters, FieldSet, record_fields and reference_targets. Configuration is trusted
+code/data, not something the candidate may supply to weaken its checks.
+
+Evaluation has accepted, rejected or incomplete outcomes and a per-rule step list,
+including blocked checks. A callback failure is not an empty passing result. Bind
+collection, content, contract and context before reusing a result. Recheck after
+selection or changes unless the host proves preservation. Changed context requires
+fresh review, not just a replaced fingerprint. A hash does not authenticate the
+checker, receipt or execution. The host still owns atomic persistence and authority.
+No generic CLI loader executes checker modules named by source content.

@@ -37,4 +37,4 @@ jobs:
       - name: Delete reviewed merged tips with compare-and-delete leases
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python tools/prune_merged_branches.py --manifest tools/branch-cleanup.json --merged-head workflow/consumer-lifecycle --apply
+        run: python tools/prune_merged_branches.py --manifest tools/branch-cleanup.json --merged-head dialects/integration --apply
