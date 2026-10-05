@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 import hashlib
+import json
 import os
 from pathlib import Path
 import posixpath
@@ -92,7 +93,7 @@ def validate(index):
             raise ProfileError("document records need explicit record ownership and metadata")
         name = _leaf(fields["document"], "document")
         parts = name.split("/")
-        if (not name.endswith(".md") or "\\" in name or ":" in name
+        if (name in MARKDOWN or not name.endswith(".md") or "\\" in name or ":" in name
                 or any(p in ("", ".", "..") for p in parts)):
             raise ProfileError("unsafe logical document name")
         if not read_text(fields["title"]):
@@ -158,7 +159,8 @@ def validate(index):
                 raise ProfileError("parent needs an explicit reference")
             target = index.records[parent.args[0].symbol]
             target_fields = dict(target.fields)
-            if (target.kind not in KINDS or target_fields["document"] != fields["document"]
+            if (target.kind not in KINDS or not {"document", "level", "order"} <= target_fields.keys()
+                    or target_fields["document"] != fields["document"]
                     or _integer(target_fields["level"], "parent level", 6) >= _integer(fields["level"], "level", 6)):
                 raise ProfileError("parent must precede its child in the same document hierarchy")
         if "links" in fields:
@@ -330,7 +332,8 @@ def render_blocks(record, index):
             rendered = render_queries(index, examples=args[0].symbol == "query-api")
             output.append("\n".join(rendered.splitlines()[2:]).rstrip())
         elif block.symbol == "metadata":
-            output.append("---\nname: " + args[0].symbol + "\ndescription: " + read_text(args[1]) + "\n---")
+            output.append("---\nname: " + args[0].symbol + "\ndescription: "
+                          + json.dumps(read_text(args[1]), ensure_ascii=False) + "\n---")
     return "\n\n".join(output) + ("\n" if output else "")
 
 
@@ -362,10 +365,14 @@ def inventory(index):
 
 
 def rendered_documents(index, root):
+    if __package__:
+        from .locations import local_file, read_source
+    else:
+        from locations import local_file, read_source
     names = dict.fromkeys(dict(r.fields)["document"].symbol for r in index.records.values() if r.kind in KINDS)
     result = {name: render_document(index, name) for name in names}
     for name in MARKDOWN:
-        result[name] = (root / name).read_text(encoding="utf-8")
+        result[name] = read_source(local_file(root, name, ".md", missing_error=FileNotFoundError))
     return result
 
 
