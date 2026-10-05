@@ -1,27 +1,12 @@
-name: Reviewed branch cleanup
+name: Merged branch maintenance
 on:
   pull_request:
-    paths: ['tools/prune_merged_branches.py', 'tools/branch-cleanup.json', 'tests/test_branch_cleanup.py', '.github/workflows/branch-cleanup.yml']
-  push:
-    branches: [main]
-    paths: ['tools/branch-cleanup.json', '.github/workflows/branch-cleanup.yml']
+    types: [closed]
 permissions:
   contents: read
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        with:
-          python-version: '3.13'
-      - run: python -m unittest discover -s tests -p test_branch_cleanup.py -v
   prune:
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -30,11 +15,25 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.13'
-      - name: Delete reviewed merged tips with compare-and-delete leases
+      - run: python -m unittest discover -s .github/maintenance -v
+      - name: Delete only the exact merged event tip
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python tools/prune_merged_branches.py --manifest tools/branch-cleanup.json --merged-head dialects/integration --apply
+        run: |
+          python - <<'PY'
+          import json, os, runpy
+          from pathlib import Path
+          event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          pr = event['pull_request']
+          repository = os.environ['GITHUB_REPOSITORY']
+          if not pr['merged'] or pr['head']['repo']['full_name'] != repository:
+              raise SystemExit('Not a merged local branch')
+          tool = runpy.run_path('.github/maintenance/prune_merged_branches.py')
+          manifest = {'repository': repository, 'branches': {pr['head']['ref']: pr['head']['sha']}}
+          print(json.dumps(tool['run'](Path.cwd(), manifest, apply=True)))
+          PY

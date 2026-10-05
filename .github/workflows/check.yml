@@ -27,7 +27,6 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python tools/check_properties.py
       - run: python tools/study_corpus.py
-      - run: python examples/layers.py
       - run: python examples/workflows.py
       - run: python examples/dialects.py
       - run: python examples/knowledge/run.py

@@ -5,8 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "tools/prune_merged_branches.py"
+PATH = Path(__file__).with_name("prune_merged_branches.py")
 spec = importlib.util.spec_from_file_location("prune", PATH)
 prune = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prune)
