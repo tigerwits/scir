@@ -1,22 +1,18 @@
-# Archived cumulative-profile experiment
+# Historical cumulative-profile experiment
 
-Preserved from `experiment/scir-cumulative-profiles-20260914`, tip
-`b91b32718dc9bc53b56f6b383c89e3095252623f`, before user-requested branch cleanup.
-The branch had two unique commits relative to its historical base
-`3ceeb1ea9ae2c0f52a1568a1f7b611469384571c`. Its four added files are retained here
-as exact original Git blobs; the archive commit also retains that tip as a
-second parent, preserving the original commit history without activating a new
-runtime module. The original source tree remains inspectable at its commit.
+The original experiment is preserved in Git at
+[`b91b32718dc9bc53b56f6b383c89e3095252623f`](https://github.com/tigerwits/scir/tree/b91b32718dc9bc53b56f6b383c89e3095252623f).
+It contains the original `src/scir/refinement.py`, example and two test files.
+The archive merge retained this commit as a parent; no history was rewritten.
 
-This is NOT an adopted SCIR API, installed package component, or current passing
-benchmark. It explores cumulative checker plans and has not been promoted through
-the current feature-evaluation process. Archived tests retain their original
-imports and should be run on the original branch commit, not treated as current
-production tests. Native/package profiles remain unchanged by this archive.
+Use a separate checkout of that exact revision to reproduce it:
 
-| Original path | Git blob |
-| --- | --- |
-| src/scir/refinement.py | b1812d4b40b11c0c58763431d0325bc98590cec5 |
-| examples/refinement-profiles.scir | 6353110c291855447f57082621c36f404a081ed2 |
-| tests/test_refinement.py | 8bb4b2ac3ef03e26893671771aa4657d0b071266 |
-| tests/test_refinement_order.py | e94ab41e3bfa9d6c02210e136c7ef73468f59139 |
+```sh
+git worktree add --detach ../scir-refinement b91b32718dc9bc53b56f6b383c89e3095252623f
+cd ../scir-refinement
+PYTHONPATH=src python -B -m unittest discover -s tests -p 'test_refinement*.py' -v
+```
+
+These are historical tests, not current passing benchmarks or a supported API.
+Current named dialects were adopted separately. The old implementation is not
+copied into the active source tree or installed package.

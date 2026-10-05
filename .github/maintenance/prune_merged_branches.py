@@ -102,7 +102,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--apply", action="store_true")
-    parser.add_argument("--merged-head", help="explicit cleanup PR branch; tip is the checked main merge second parent")
     args = parser.parse_args()
     def unique(pairs):
         obj = {}
@@ -116,13 +115,6 @@ def main():
     if len(raw) > 64_000:
         raise ValueError("manifest exceeds bound")
     manifest = json.loads(raw, object_pairs_hook=unique)
-    if args.merged_head:
-        if os.environ.get("GITHUB_REF") != "refs/heads/main":
-            raise ValueError("merged-head cleanup requires a main push")
-        parents = git(Path.cwd(), "rev-list", "--parents", "-n", "1", "HEAD").stdout.split()
-        if len(parents) != 3 or parents[0] != os.environ.get("GITHUB_SHA"):
-            raise ValueError("expected the exact two-parent main merge")
-        manifest["branches"][args.merged_head] = parents[2]
     print(json.dumps(run(Path.cwd(), manifest, apply=args.apply), indent=2))
 
 
