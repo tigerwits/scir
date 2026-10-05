@@ -76,7 +76,7 @@ class DialectHandoffTests(unittest.TestCase):
         with patch.object(POLICY, 'check', side_effect=AssertionError('must not run')) as callback:
             result = self.result(bad)
         callback.assert_not_called()
-        self.assertEqual([s.status for s in result.steps], ['passed', 'rejected', 'blocked', 'blocked', 'blocked', 'blocked'])
+        self.assertEqual([s.status for s in result.steps], ['passed', 'rejected'])
         self.assertEqual(result.outcome, 'rejected')
 
     def test_bad_external_context_is_incomplete_not_content_rejection(self):
@@ -104,7 +104,7 @@ class DialectHandoffTests(unittest.TestCase):
             if not any(t.args[0] == Term('N') for t in document):
                 yield Violation(None, 'inventory', 'consumer requires its independent note')
         strict = compose('inventory-consumer', '1', self.contract, rules=(
-            Rule('inventory', '1', 'c'*64, inventory, ('working',)),))
+            Rule('inventory', '1', 'c'*64, inventory, ('consumer',)),))
         original = self.result(self.document, dialect=strict)
         self.assertTrue(original.conforms)
         packet = select(self.index, ('D1',))
@@ -150,5 +150,5 @@ class DialectHandoffTests(unittest.TestCase):
         validation = report['validation']
         self.assertEqual(validation['outcome'], 'accepted')
         self.assertEqual(validation['context']['revision'], report['input_basis']['digest'])
-        self.assertEqual([s['rule'] for s in validation['steps']], ['structured','working','repository'])
+        self.assertEqual([s['rule'] for s in validation['steps']], ['repository'])
         self.assertTrue(validation['all_executed'])

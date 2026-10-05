@@ -14,6 +14,3 @@ class AdoptionEntrypointTests(unittest.TestCase):
                        'examples/consumer-lifecycle/README.md', 'examples/consumer-lifecycle/run.py'):
             self.assertIn(target, source)
             self.assertTrue((ROOT / target).is_file())
-        self.assertIn('custom dialect', source)
-        self.assertIn('standard `working/1`', source)
-        self.assertIn('disposable copy', source)

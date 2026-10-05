@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Run hypothetical lifecycle changes with fixed test-double approvals and receipts."""
+from dataclasses import replace
 from pathlib import Path
 import json
 
-from scir import parse_document, format_document
-from scir.changes import ConflictError
+from scir import Term, parse_document, format_document
+from scir.changes import ConflictError, propose
+from scir.dialects import evaluate
 from scir.knowledge import build_index, select
 from scir.delivery import selection
-from policy import Receipt, TrustedInputs, PolicyError, STAGING, check, effective, propose_checked
+from policy import Receipt, TrustedInputs, PolicyError, STAGING, effective
 
 HERE = Path(__file__).resolve().parent
 COLLECTION = "consumer-lifecycle-fixture"
@@ -42,23 +44,31 @@ def run():
     document = parse_document(raw.decode("utf-8"))
     index = build_index(document, collection=COLLECTION)
     trusted = trusted_fixture()
-    check(index, trusted)
+    from dialect import context_from, contract, propose_checked as named_propose
+    context = context_from(trusted, "fixture-revision-1")
+    dialect = contract()
+    initial = evaluate(document, dialect, context, collection=COLLECTION)
+    if not initial.conforms:
+        raise AssertionError("original fixture does not conform")
+    def checked(subject, value):
+        return named_propose(subject, value, dialect, context,
+                             expected_context=context.fingerprint)
     resolution = effective(index, "D1")
     if resolution.status != "resolved" or resolution.ids != ("D2",):
         raise AssertionError("expected one reviewed replacement")
     rejected = []
     unsafe = request(index, [{"op": "setField", "id": "T", "field": "status", "value": "ready"}])
     try:
-        propose_checked(index, unsafe, trusted)
+        checked(index, unsafe)
     except PolicyError:
         rejected.append("stale-decision-link")
     else:
         raise AssertionError("a historical prerequisite became current implicitly")
     update = request(index, ready_operations())
-    prepared = propose_checked(index, update, trusted)
+    prepared, receipt = checked(index, update)
     ready = build_index(prepared.document, collection=COLLECTION)
     try:
-        propose_checked(ready, request(ready, [{"op": "setField", "id": "T", "field": "status", "value": "completed"}]), trusted)
+        checked(ready, request(ready, [{"op": "setField", "id": "T", "field": "status", "value": "completed"}]))
     except PolicyError:
         rejected.append("unsupported-completion")
     else:
@@ -66,10 +76,10 @@ def run():
     finish = request(ready, [{"op": "setField", "id": "T", "field": "status", "value": "completed"},
                              {"op": "setField", "id": "T", "field": "evidence",
                               "value": '"scir.tuple"("scir.ref"(Etest), "scir.ref"(Edelivery))'}])
-    completed = propose_checked(ready, finish, trusted)
+    completed, completion_receipt = checked(ready, finish)
     final = build_index(completed.document, collection=COLLECTION)
     try:
-        propose_checked(final, update, trusted)
+        checked(final, update)
     except ConflictError:
         rejected.append("stale-snapshot")
     else:
@@ -80,7 +90,33 @@ def run():
         raise AssertionError("delivery changed the complete selected context")
     if path.read_bytes() != raw or format_document(index.document).encode("utf-8") != raw:
         raise AssertionError("source was changed")
-    return {"example": "consumer-lifecycle/1", "resolved_id": "D2", "final_status": "completed",
+    unsafe_result = evaluate(propose(index, unsafe).document, dialect, context, collection=COLLECTION)
+    selected = select(ready, ("D1",))
+    selected_receipt = evaluate(selected.document, dialect, context, collection=COLLECTION)
+    invalid_host = replace(context, document=(Term("inventedAuthority"),))
+    incomplete = evaluate(document, dialect, invalid_host, collection=COLLECTION)
+    if (not receipt.matches(prepared.document, dialect, context, collection=COLLECTION)
+            or initial.matches(prepared.document, dialect, context, collection=COLLECTION)
+            or receipt.matches(selected.document, dialect, context, collection=COLLECTION)
+            or not selected_receipt.conforms or incomplete.outcome != "incomplete"
+            or unsafe_result.outcome != "rejected" or not completion_receipt.conforms):
+        raise AssertionError("validation result lost its input boundary")
+    try:
+        named_propose(index, update, dialect, replace(context, revision="fixture-revision-2"),
+                      expected_context=context.fingerprint)
+    except ConflictError:
+        context_conflict = True
+    else:
+        raise AssertionError("stale external context was ignored")
+    named = {"example": "named-consumer-dialect/2", "initial": initial.as_dict(),
+             "rejected": unsafe_result.as_dict(), "candidate": receipt.as_dict(),
+             "selected": selected_receipt.as_dict(), "incomplete": incomplete.as_dict(),
+             "context_conflict": context_conflict, "source_written": False,
+             "service_calls": 0, "agent_trials": 0,
+             "trust": "fixed input fixtures and local build hashes, not authenticated live execution"}
+    if path.read_bytes() != raw:
+        raise AssertionError("source changed during named validation")
+    return {"named": named, "example": "consumer-lifecycle/1", "resolved_id": "D2", "final_status": "completed",
             "rejected": rejected, "source_written": False, "service_calls": 0, "agent_trials": 0,
             "trust": "fixed test doubles, not authenticated live receipts",
             "packet_bytes": len(delivered.packet.encode("utf-8")),
