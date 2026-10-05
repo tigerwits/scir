@@ -78,6 +78,7 @@ python -m unittest discover -s tests -v
 The suite executes documentation, shipped examples, the named repository check,
 the disposable-copy handoff, and relocated skill references. Run individual
 examples when inspecting their reports; do not repeat them as mandatory gates.
+See [verification boundaries](docs/verification.md) for CI ownership.
 Build the wheel and sdist; test outside the checkout. For traversal changes, run
 `python tools/benchmark.py`. Preserve the golden conformance vectors; never update
 expected values merely to hide a regression.

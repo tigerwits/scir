@@ -2,7 +2,10 @@ name: Historical native integrity
 on:
   push:
     branches: [main]
+    paths: ["tools/check_native_baseline.py", "tests/test_native_baseline.py", ".github/workflows/native-baseline.yml"]
   pull_request:
+    paths: ["tools/check_native_baseline.py", "tests/test_native_baseline.py", ".github/workflows/native-baseline.yml"]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
