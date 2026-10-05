@@ -8,17 +8,20 @@ from pathlib import Path
 import re
 import sys
 
-from scir import Document, format_document, match, parse_document, parse_pattern, query
+from scir import Document, format_document, match, parse_pattern, query
 from scir.constraints import Violation, check, forms
 from scir.profile import LimitError
 
 if __package__:
     from .locations import local_file, declarations as source_declarations
+    from .views import replace_view
 elif __name__ == "__main__" or Path(sys.path[0]).resolve() == Path(__file__).resolve().parent:
     # Includes repository.py importing this module as a sibling script.
     from locations import local_file, declarations as source_declarations
+    from views import replace_view
 else:
     from spec.locations import local_file, declarations as source_declarations
+    from spec.views import replace_view
 
 ROOT = Path(__file__).resolve().parents[1]
 AREAS = frozenset(("Core", "Syntax", "Patterns", "Tree", "Annotations", "Transport", "Constraints", "CLI"))
@@ -192,17 +195,6 @@ def render_queries(document: Document, *, examples: bool) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def replace_view(text: str, key: str, body: str) -> str:
-    start, end = (f"<!-- scir:{key}:{part} -->" for part in ("start", "end"))
-    if text.count(start) != 1 or text.count(end) != 1:
-        raise ValueError(f"expected exactly one marker pair for {key}")
-    a, b = text.index(start), text.index(end)
-    if (a >= b or (a and text[a - 1] != "\n") or text[a + len(start):a + len(start) + 1] != "\n"
-            or text[b - 1] != "\n" or text[b + len(end):b + len(end) + 1] not in ("", "\n")):
-        raise ValueError(f"invalid marker boundaries for {key}")
-    return text[:a + len(start)] + "\n" + body + text[b:]
-
-
 def view_updates(document: Document, root: Path = ROOT) -> list[tuple[Path, bytes]]:
     """Preflight every destination before an explicit write; preserve other bytes."""
     updates = []
@@ -238,4 +230,3 @@ def render(document: Document) -> str:
             cells += ["<br>".join(map(code, links[ident.symbol, kind])) for kind in ("specifiedBy", "coveredBy")]
             lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
-

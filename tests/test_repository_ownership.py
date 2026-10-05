@@ -12,7 +12,7 @@ class RepositoryOwnershipTests(unittest.TestCase):
     def test_spec_and_generated_hints_name_the_authoritative_shard(self):
         source = (ROOT / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("[the maintained SCIR records](spec/native.scir)", source)
-        document = parse_document((ROOT / "spec/requirements.scir").read_text(encoding="utf-8"))
+        document = parse_document((ROOT / "tests/fixtures/native-migration.scir").read_text(encoding="utf-8"))
         for examples in (False, True):
             banner = catalog.render_queries(document, examples=examples).splitlines()[0]
             self.assertIn("spec/native.scir", banner)

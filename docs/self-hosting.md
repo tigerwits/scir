@@ -36,8 +36,8 @@ is not a concurrent persistence implementation or an approved design change.
 
 ## Maintain one owner
 
-The source is `spec/native.scir` plus `spec/knowledge.scir`. The compatibility
-catalog and marked Markdown sections are derived. Other normative sections stay
+The source is `spec/native.scir` plus `spec/knowledge.scir`. The two marked Markdown sections are derived directly. The old catalog is
+an explicit compatibility export, not an intermediate maintenance format. Other normative sections stay
 document-owned. Read [ownership](../spec/OWNERSHIP.md) and the
 [handoff contract](../spec/HANDOFF.md); do not edit a generated retelling.
 

@@ -21,7 +21,7 @@ class RepositoryRootTests(unittest.TestCase):
                 result = repository.maintenance(alias)
             self.assertEqual(result, 1, err.getvalue())
             self.assertEqual(out.getvalue(), "")
-            self.assertIn("stale derived files: spec/requirements.scir", err.getvalue())
+            self.assertIn("stale derived files: SPEC.md", err.getvalue())
             self.assertNotIn("incomplete", err.getvalue())
             self.assertEqual(before, {p: p.read_bytes() for p in before})
             with redirect_stdout(io.StringIO()), redirect_stderr(err):

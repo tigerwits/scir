@@ -7,19 +7,19 @@ import json
 from pathlib import Path
 import sys
 
-from scir import Document, Term, format_document, parse_document
+from scir import Document, Term, format_document
 from scir.knowledge import Index, build_index
 from scir._profile_native import native, failure
 from scir.profile import LimitError, ProfileError, read_fields, read_tuple
 
 if __package__:
     from .locations import declarations, local_file, read_source
-    from .projection import legacy_document, QUERY_FIELDS
-    from . import catalog, handoff
+    from .views import QUERY_FIELDS
+    from . import views, handoff
 else:
     from locations import declarations, local_file, read_source
-    from projection import legacy_document, QUERY_FIELDS
-    import catalog, handoff
+    from views import QUERY_FIELDS
+    import views, handoff
 
 ROOT = Path(__file__).resolve().parents[1]
 COLLECTION = "scir-repository"
@@ -91,11 +91,7 @@ def validate(document: Document, root: Path = ROOT) -> Index:
                 location(item, kind)
         if record.kind in ("Decision", "Question") and "status" not in fields:
             raise ProfileError("decision/question needs an authored status")
-    projected = legacy_document(index)
-    if projected:
-        issues = catalog.validate_catalog(projected, root)
-        if issues:
-            raise ProfileError("invalid legacy projection: " + "; ".join(i.message for i in issues))
+    views.validate(index)
     return index
 
 
@@ -111,15 +107,8 @@ def load(root: Path = ROOT) -> Index:
 
 
 def updates(index: Index, root: Path = ROOT):
-    """Preflight all three derived destinations before the caller writes any."""
-    projected = legacy_document(index)
-    if not projected:
-        raise ProfileError("maintained repository requires native projection records")
-    legacy = local_file(root, "spec/requirements.scir", ".scir")
-    expected = format_document(projected).encode("utf-8")
-    changes = [] if legacy.read_bytes() == expected else [(legacy, expected)]
-    changes.extend(catalog.view_updates(projected, root))
-    return changes
+    """Preflight both directly rendered destinations before any explicit write."""
+    return views.updates(index, root)
 
 
 def propose_checked(index: Index, request: str, root: Path = ROOT):
@@ -174,7 +163,7 @@ def maintenance(root: Path = ROOT, *, write_views=False, markdown=False) -> int:
                 path.write_bytes(data)
             print(f"Refreshed {len(changes)} derived files; authoritative records were not changed.")
         elif markdown:
-            print(catalog.render(legacy_document(index)), end="")
+            print(views.render(index), end="")
         else:
             print(f"Checked {len(index.records)} repository records and all derived views; linked tests were not run.")
         return 0

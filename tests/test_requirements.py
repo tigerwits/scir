@@ -1,4 +1,4 @@
-"""The project's SCIR index: valid links, explicit gaps, no code execution."""
+"""The project catalog is checked SCIR, not a claim that linked tests prove it."""
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -10,7 +10,7 @@ from scir import format_document, parse, parse_document, parse_pattern, query, r
 from scir.relations import decode, encode
 
 ROOT = Path(__file__).resolve().parents[1]
-CATALOG = ROOT / "spec/requirements.scir"
+CATALOG = ROOT / "tests/fixtures/native-migration.scir"
 TOOLS = runpy.run_path(str(ROOT / "spec/check.py"))
 CHECK, RENDER, MAIN = (TOOLS[name] for name in ("validate_catalog", "render", "main"))
 SOURCE = '''requirement(R, CLI, preserves(Input))
