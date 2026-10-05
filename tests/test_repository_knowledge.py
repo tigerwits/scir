@@ -41,7 +41,7 @@ class RepositoryKnowledgeTests(unittest.TestCase):
         for identifier in ("SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"):
             self.assertIn("NoAgentTrials", select(index, (identifier,)).selected_ids)
         self.assertEqual(dict(index.records["AgentEvaluation"].fields)["status"], Term("open"))
-        legacy = parse_document((ROOT / "spec/requirements.scir").read_text(encoding="utf-8"))
+        legacy = parse_document((ROOT / "tests/fixtures/native-migration.scir").read_text(encoding="utf-8"))
         self.assertTrue({t.args[0].symbol for t in legacy if t.symbol == "requirement"} <= set(index.records))
         packet = select(index, ("NamedRoles",))
         self.assertTrue({"NamedRoles", "OptionalRoles", "TupleArity", "ModelProofBoundary"} <= set(packet.selected_ids))

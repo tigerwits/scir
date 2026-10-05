@@ -1,7 +1,7 @@
 include SPEC.md AGENTS.md CHANGELOG.md SECURITY.md
 recursive-include docs *.md *.json
 recursive-include examples *.scir *.scix *.py *.txt *.md
-recursive-include tests *.py
+recursive-include tests *.py *.scir
 recursive-include tools *.py
 global-exclude __pycache__ *.py[cod]
 recursive-include skills *.md *.py LICENSE

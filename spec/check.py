@@ -36,15 +36,28 @@ def main(argv=None) -> int:
     if argv[:1] == ["knowledge"]:
         return _repository().main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("file", nargs="?", type=Path, default=ROOT / "spec/requirements.scir")
+    parser.add_argument("file", nargs="?", type=Path, default=None)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--markdown", action="store_true", help="print the requirement index")
     mode.add_argument("--write-views", action="store_true", help="refresh the two generated query sections")
+    mode.add_argument("--legacy", action="store_true", help="export the native compatibility catalog to stdout")
     args = parser.parse_args(argv)
-    # The real repository uses authoritative working records. Retain the legacy
-    # validator API for explicitly supplied catalogs and test fixture roots.
-    if (ROOT.resolve() == Path(__file__).resolve().parents[1]
-            and args.file.resolve() == Path(__file__).resolve().with_name("requirements.scir")):
+    if args.legacy:
+        if args.file is not None:
+            parser.error("--legacy exports current records; it takes no catalog input")
+        try:
+            if __package__:
+                from .projection import legacy_document
+            elif __name__ == "__main__":
+                from projection import legacy_document
+            else:
+                from spec.projection import legacy_document
+            print(format_document(legacy_document(_repository().load(ROOT))), end="")
+            return 0
+        except (ValueError, OSError, RecursionError) as error:
+            print(f"compatibility export incomplete: {error}", file=sys.stderr)
+            return 2
+    if args.file is None:
         return _repository().maintenance(ROOT, write_views=args.write_views, markdown=args.markdown)
     try:
         text = args.file.read_bytes().decode("utf-8")

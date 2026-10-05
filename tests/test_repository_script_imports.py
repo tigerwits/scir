@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class RepositoryScriptImportsTests(unittest.TestCase):
     def test_standalone_scripts_work_without_checkout_on_pythonpath(self):
-        paths = ("spec/native.scir", "spec/knowledge.scir", "spec/requirements.scir", "SPEC.md", "docs/api.md")
+        paths = ("spec/native.scir", "spec/knowledge.scir", "SPEC.md", "docs/api.md")
         before = {name: (ROOT / name).read_bytes() for name in paths}
         env = dict(os.environ, PYTHONPATH=str(Path(scir.__file__).resolve().parent.parent),
                    PYTHONDONTWRITEBYTECODE="1")

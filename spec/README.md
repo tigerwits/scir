@@ -1,94 +1,83 @@
-# Repository knowledge and derived views
+# Repository knowledge and direct views
 
-The repository maintains one `scir-repository` working collection in two explicit
-canonical record shards. Read [ownership](OWNERSHIP.md) before changing content.
+One `scir-repository` collection is maintained in two explicit canonical record
+shards. Read [ownership](OWNERSHIP.md) before changing content.
 
 ```text
 native.scir + knowledge.scir
-    -> validated working/1 collection
-    -> whole-context selection, dependency review, guarded candidates
-    -> requirements.scir (derived native compatibility catalog)
-        -> SPEC.md: marked occurrence/query paragraphs
-        -> docs/api.md: marked rules, notes and executable examples
+    -> validated working/1 collection and repository contract
+    -> complete requirement index, selection, review and guarded proposals
+    -> two directly rendered query sections in SPEC.md and docs/api.md
 ```
 
-`native.scir` preserves the original 30 requirement IDs, obligation terms,
-source/test links, six exact query wording records and three query examples.
-`knowledge.scir` covers the added profiles, decisions, limitations and open work.
-Only the explicitly marked query material is generated into Markdown. The other
-specification sections and human explanations remain authored; there is no
-blanket Markdown migration or documentation template language.
+`views.py` reads the owning records. It checks query order, wording, example IDs
+and independent expected query paths. Location checks inspect each declared
+file/kind once per validation. They do not import tests or elaborate Lean.
+No legacy catalog is required to validate, select or render current knowledge.
 
 ## Check, select and review
-
-From the installed project interpreter:
 
 ```sh
 python spec/check.py
 python spec/check.py --markdown
 python spec/check.py knowledge select --id NamedRoles
-python spec/check.py knowledge select --id RootScope
 python spec/check.py knowledge affected --changed PreserveCallArity
 ```
 
-Selection starts from known IDs and follows all explicit references, returning
-whole records with their source snapshot and context. It does not discover
-unwritten dependencies or infer facts. Review candidates follow only reverse
-`dependsOn` relationships. A source link is not evidence of a successful run.
+The Markdown index includes every Requirement in both shards, not just the native
+subset. Selection returns whole records and closes declared references. Review
+follows reverse `dependsOn`, not every citation. These operations do not discover
+unwritten dependencies or establish truth, execution, approval or coverage.
 
-Read the [handoff contract](HANDOFF.md) before proposing a change. Requests retain
-`scir-change/1` and the full combined content snapshot; the repository CLI also
-requires `--basis` with the inspected selection's `input_basis.digest`:
-
-```sh
-python spec/check.py knowledge propose --basis "$BASIS" --change change.json
-```
-
-The additional guard covers exact linked source/test/model bytes, shard ownership
-and repository-tool inputs. The repository wrapper checks local links and query
-projection, returning a full candidate and explicit per-shard write plan without
-writing source. New records require explicit source placements. The host still
-owns authorization and an atomic commit of all preconditions and planned files.
+For proposals, follow the [handoff contract](HANDOFF.md). Supply the inspected
+selection's `input_basis.digest` as `--basis`, and its content snapshot in the
+`scir-change/1` request. The adapter checks linked input bytes, source ownership,
+query examples and derived destinations before returning a per-file plan.
+It writes no source. New record IDs require explicit placements. A host must
+atomically enforce all commit preconditions and planned writes.
 
 ## Refresh only the derived material
 
-After an explicitly reviewed source-record edit:
+After reviewing an authoritative record change:
 
 ```sh
 python spec/check.py --write-views
 python spec/check.py
-python -m unittest discover -s tests -v
 ```
 
-Default checking fails on stale outputs without writing. Refresh preflights all
-three destinations, preserves Markdown outside the markers and leaves both
-source shards untouched. These are not atomic multi-file filesystem writes.
-Inspect the diff and run independent tests; rendering never makes a claim true.
+This preflights both Markdown destinations, preserves bytes outside their markers,
+and leaves both source shards untouched. It is not a multi-file transaction.
+Rendering synchronizes text; it never makes a claim true. Other prose remains
+authored, and only the six designated query records own exact normative wording.
 
-The native dialect still supports direct inspection of the derived catalog:
+## Explicit compatibility export
+
+Consumers of the old native catalog can request a separate view:
 
 ```sh
-python -m scir query spec/requirements.scir --pattern 'topic(?id, Queries)'
-python -m scir query spec/requirements.scir --pattern 'wording(RootScope, ?text)'
-python -m scir query spec/requirements.scir --pattern 'coveredBy(RootScope, ?test)'
+python spec/check.py --legacy > /tmp/scir-legacy.scir
+python -m scir query /tmp/scir-legacy.scir --pattern 'topic(?id, Queries)'
 ```
 
-The existing `validate_catalog`, query example and renderer functions remain
-available through `check.py` compatibility exports. Their reusable implementation
-lives in `catalog.py`, below both CLI and repository orchestration. They are not
-another authored account of the project.
+Choose a fresh output path and never redirect onto a source. The export contains
+only the records explicitly marked `projection: native`. `projection.py` and the
+old validator in `catalog.py` are transitional compatibility adapters. Supplying
+an explicit catalog file to `check.py` retains the legacy inspection behavior;
+this is not the normal repository workflow. Do not author or commit a second
+catalog. The old `check.py` function re-exports remain for existing consumers.
+
+The initial catalog and its record source are frozen under `tests/fixtures/`.
+Their migration witness must not constrain future changes to the living records.
+Independent exact query tests and marker/ownership checks remain mandatory.
 
 ## What checks establish
 
-Static checks resolve one exact Markdown heading outside triple-backtick fences,
-a direct test method in a top-level `unittest.TestCase` subclass, or a simple Lean
-theorem declaration. File paths are repository-relative, bounded and cannot use
-traversal or symlinks. No linked test or proof is executed by location checking.
-Query examples call only the public SCIR query API with authored expected paths.
+Static links identify a Markdown heading outside triple-backtick fences, a direct
+method of a top-level `unittest.TestCase`, or a simple Lean theorem declaration.
+These are bounded source conventions, not full Markdown or Lean elaboration.
+Paths cannot traverse out of the repository or use symlinks. A declaration's
+existence is not evidence of fidelity, execution or test adequacy.
 
-A payload with a valid citation may still be wrong. Separate source review,
-independent test execution, model checking and agent trials from bookkeeping.
-Exit 0 means the requested checks completed; 1 means rejection or stale content;
-2 means checking could not complete. New selection/proposal errors emit no partial
-success. The catalog and maintenance tools ship in the source distribution,
-not the runtime wheel.
+Exit 0 means the requested checks completed, 1 means rejection or stale content,
+and 2 means checking could not complete. Failed selection/proposals emit no
+partial success. Repository tools ship in the sdist, not the runtime wheel.

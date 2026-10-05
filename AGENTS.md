@@ -15,7 +15,8 @@ Find the affected IDs, rationale, qualifications and independent test links with
 `python spec/check.py knowledge select --id ID`. Use `knowledge affected` for
 review dependencies. These commands do not infer truth or certify test adequacy.
 
-`spec/requirements.scir` is a derived compatibility view, not an editable source.
+The old catalog is an explicit `python spec/check.py --legacy` compatibility export.
+It is not a maintained source or an intermediate validation format.
 The six query/occurrence records in `spec/native.scir` own exact wording and
 examples; their marked SPEC/API paragraphs are generated. Other normative rules
 remain document-owned and their records are indexes. Edit the designated owner,
@@ -23,7 +24,7 @@ then run `python spec/check.py --write-views` and review the diff. Never treat a
 independent prose revision or automatic rendering as a new source fact.
 
 Run `python spec/check.py` before and after changes. It checks both source shards,
-references, source/test/model links, stored query examples and view freshness. It
+references, source/test/model links, stored query examples and direct view freshness. It
 does not run the linked tests or Lean proofs. Keep independent conformance tests.
 Repository `knowledge propose --basis DIGEST --change FILE` requires the inspected
 selection's input-basis digest, validates local contracts and returns a source-owned

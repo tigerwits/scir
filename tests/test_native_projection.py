@@ -22,8 +22,8 @@ def native_record(**fields):
 
 class NativeProjectionTests(unittest.TestCase):
     def test_migration_preserves_fixed_legacy_bytes_and_both_query_views(self):
-        index = build_index(parse_document((ROOT / "spec/native.scir").read_text(encoding="utf-8")), collection="scir-repository")
-        old = (ROOT / "spec/requirements.scir").read_bytes().replace(b"\r\n", b"\n")
+        index = build_index(parse_document((ROOT / "tests/fixtures/native-migration-records.scir").read_text(encoding="utf-8")), collection="scir-repository")
+        old = (ROOT / "tests/fixtures/native-migration.scir").read_bytes().replace(b"\r\n", b"\n")
         # Historical migration witness only; behavioral goldens remain independent.
         blob = hashlib.sha1(b"blob " + str(len(old)).encode() + b"\0" + old).hexdigest()
         self.assertEqual(blob, "64a65d662ff9fd5ce193bab4e448289b0e87c3e2")
@@ -53,4 +53,3 @@ class NativeProjectionTests(unittest.TestCase):
         other = Term("record", (Term("S"), *other.args[1:]))
         with self.assertRaises(ProfileError):
             legacy_document(build_index((native_record(), other), collection="test"))
-

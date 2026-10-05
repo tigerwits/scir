@@ -49,7 +49,7 @@ class ContentViewTests(unittest.TestCase):
     def run_cli(self, *args):
         out, err = StringIO(), StringIO()
         with patch.dict(MAIN.__globals__, ROOT=self.root), redirect_stdout(out), redirect_stderr(err):
-            code = MAIN(list(args))
+            code = MAIN(list(args) if args and not args[0].startswith("--") else [str(self.catalog), *args])
         return code, out.getvalue(), err.getvalue()
 
     def apply(self, document=None):
@@ -57,7 +57,7 @@ class ContentViewTests(unittest.TestCase):
             path.write_bytes(data)
 
     def test_repository_views_are_fresh(self):
-        document = parse_document((ROOT / "spec/requirements.scir").read_text())
+        document = parse_document((ROOT / "tests/fixtures/native-migration.scir").read_text())
         self.assertEqual(CHECK(document), ())
         self.assertEqual(UPDATES(document), [])
 
@@ -69,7 +69,7 @@ Walking enumerates every occurrence in root-order, depth-first preorder.
 Queries default to matching roots. Explicit `scope="all"` matches every
 occurrence. Results include path, matched term, and bindings, in traversal order,
 including duplicate occurrences. Neither scope computes logical consequences.'''
-        doc = parse_document((ROOT / "spec/requirements.scir").read_text())
+        doc = parse_document((ROOT / "tests/fixtures/native-migration.scir").read_text())
         wording = RENDER(doc, examples=False).split("\n", 1)[1]
         self.assertEqual(" ".join(wording.split()), " ".join(expected.split()))
 
@@ -90,7 +90,7 @@ including duplicate occurrences. Neither scope computes logical consequences.'''
         self.addCleanup(alias.unlink)
         out, err = StringIO(), StringIO()
         with patch.dict(MAIN.__globals__, ROOT=alias), redirect_stdout(out), redirect_stderr(err):
-            code = MAIN([])
+            code = MAIN([str(alias / "spec/requirements.scir")])
         self.assertEqual(code, 1, err.getvalue())
         self.assertIn("stale view: SPEC.md", err.getvalue())
         self.assertIn("stale view: docs/api.md", err.getvalue())

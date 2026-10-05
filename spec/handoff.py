@@ -19,7 +19,7 @@ else:
 VERSION = "scir-repository-basis/1"
 MAX_FILES = 2048
 MAX_BYTES = 32_000_000
-DERIVED = ("spec/requirements.scir", "SPEC.md", "docs/api.md")
+DERIVED = ("SPEC.md", "docs/api.md")
 
 
 def sha(raw: bytes) -> str:
