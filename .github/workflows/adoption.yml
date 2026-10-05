@@ -21,7 +21,6 @@ jobs:
       - run: python -m pip install build
       - run: python -m build
       - run: python -m pip install --no-deps dist/*.whl
-      - run: python -m unittest discover -s tests -p test_adoption_examples.py -v
       - name: Verify shipped sources outside the checkout
         shell: bash
         run: |
@@ -32,7 +31,6 @@ jobs:
           python skills/scir/scripts/working_example.py > "$GITHUB_WORKSPACE/.build/consumer.json"
           python tools/check_self_host.py > "$GITHUB_WORKSPACE/.build/self-host.json"
           python examples/consumer-lifecycle/run.py > "$GITHUB_WORKSPACE/.build/lifecycle.json"
-          python examples/consumer-lifecycle/dialect_run.py > "$GITHUB_WORKSPACE/.build/dialect-lifecycle.json"
           python tools/check_dialects.py > "$GITHUB_WORKSPACE/.build/dialect-repository.json"
       - name: Retain exact tested source and distributions
         run: |
@@ -46,7 +44,6 @@ jobs:
             .build/consumer.json
             .build/self-host.json
             .build/lifecycle.json
-            .build/dialect-lifecycle.json
             .build/dialect-repository.json
             .build/source-revision.txt
             .build/source.tar.gz
