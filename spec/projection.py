@@ -20,7 +20,13 @@ def legacy_document(index: Index):
         if fields.get("projection") != Term("native"):
             continue
         roots.append(Term("requirement", (Term(record.id), fields["area"], record.payload)))
-        roots.append(Term("specifiedBy", (Term(record.id), fields["source"])))
+        source = fields["source"]
+        if source.symbol == "scir.ref":
+            target = dict(index.records[source.args[0].symbol].fields)
+            # Compatibility locations address a disposable documentation export,
+            # not an authoritative Markdown dependency in the checkout.
+            source = Term("section", (target["document"], Term(read_text(target["title"]))))
+        roots.append(Term("specifiedBy", (Term(record.id), source)))
         roots.extend(Term("coveredBy", (Term(record.id), target)) for target in read_tuple(fields["tests"]))
     for record in views:
         fields = dict(record.fields)

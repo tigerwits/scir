@@ -1,5 +1,3 @@
 *.scir text eol=lf
-SPEC.md text eol=lf
-docs/api.md text eol=lf
-examples/knowledge/**/source.md text eol=lf
-examples/dialect-chain/source.md text eol=lf
+README.md text eol=lf
+AGENTS.md text eol=lf

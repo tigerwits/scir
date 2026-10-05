@@ -58,11 +58,11 @@ class RepositoryDeliveryTests(unittest.TestCase):
             index = fixture(root)
             for source in (ROOT / "spec").glob("*.py"):
                 shutil.copyfile(source, root / "spec" / source.name)
-            basis = handoff.capture(root, index, repository.SOURCES)
+            basis = handoff.capture(root, index, repository.sources(root))
             change = root / "request.json"
             change.write_text(request(index, [{"op": "setField", "id": "D", "field": "reason",
                                               "value": '"scir.text"("reviewed fixture")'}]), encoding="utf-8")
-            before = {name: (root / name).read_bytes() for name in repository.SOURCES}
+            before = {name: (root / name).read_bytes() for name in repository.sources(root)}
             args = [sys.executable, str(root / "spec/check.py"), "knowledge", "propose",
                     "--change", str(change), "--basis", basis.fingerprint]
             def run(*flags):
@@ -81,7 +81,7 @@ class RepositoryDeliveryTests(unittest.TestCase):
             self.assertEqual(json.loads(artifact.stdout)["value"], full)
             self.assertEqual([entry["path"] for entry in full["write_plan"]], ["spec/knowledge.scir"])
             self.assertEqual(hashlib.sha256(artifact.stdout).hexdigest(), packet["artifact"]["sha256"])
-            self.assertEqual(before, {name: (root / name).read_bytes() for name in repository.SOURCES})
+            self.assertEqual(before, {name: (root / name).read_bytes() for name in repository.sources(root)})
 
     def test_delivery_is_inside_the_repository_recapture_guard(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -108,7 +108,7 @@ class RepositoryDeliveryTests(unittest.TestCase):
         from scir.knowledge import build_index
         document = (p.application("record", (Term("A"), Term("Note"), p.text("x" * 2_000_000))),)
         index = build_index((), collection="x")
-        result = {"collection": "x", "repository_contract": "scir-repository/1",
+        result = {"collection": "x", "repository_contract": "scir-repository/2",
                   "input_basis": {"digest": "a"}, "commit_basis": {"digest": "b"},
                   "before_snapshot": index.snapshot, "candidate_snapshot": digest(document),
                   "records": [str(document[0])], "complete": True, "validation": {}}

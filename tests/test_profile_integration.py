@@ -54,7 +54,8 @@ class ProfileIntegrationTests(unittest.TestCase):
 
     def test_public_api_examples_execute(self):
         import re
-        source = (ROOT/"docs"/"profiles-api.md").read_text(encoding="utf-8")
+        from spec import documents, repository
+        source = documents.render_document(repository.load(ROOT), "docs/profiles-api.md")
         examples = re.findall(r"```python\n(.*?)\n```", source, re.S)
         self.assertEqual(len(examples), 2)
         for example in examples:

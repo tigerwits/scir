@@ -29,7 +29,7 @@ def code_identity():
 
 def run():
     index = repository.load(ROOT)
-    basis = handoff.capture(ROOT, index, repository.SOURCES, extra=("tools/check_dialects.py",))
+    basis = handoff.capture(ROOT, index, repository.sources(ROOT), extra=("tools/check_dialects.py",))
     identity = code_identity()
     context = Context("scir-repository-inputs/1", basis.fingerprint)
     with tempfile.TemporaryDirectory(prefix="scir-dialect-basis-") as temporary:
@@ -58,7 +58,7 @@ def run():
         result = evaluate(index.document, contract, context, collection=index.collection)
         if not result.conforms:
             raise ValueError("repository dialect did not conform: " + result.outcome)
-    if handoff.capture(ROOT, index, repository.SOURCES, extra=("tools/check_dialects.py",)) != basis or code_identity() != identity:
+    if handoff.capture(ROOT, index, repository.sources(ROOT), extra=("tools/check_dialects.py",)) != basis or code_identity() != identity:
         raise ConflictError("repository inputs or checker files changed during evaluation")
     return {"example": "repository-dialect/1", "validation": result.as_dict(),
             "input_basis": basis.packet(), "source_written": False, "agent_trials": 0,

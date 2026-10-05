@@ -22,7 +22,7 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/tigerwits/scir"
 Issues = "https://github.com/tigerwits/scir/issues"
-Specification = "https://github.com/tigerwits/scir/blob/main/SPEC.md"
+Specification = "https://github.com/tigerwits/scir/blob/main/spec/format.scir"
 
 [project.scripts]
 scir = "scir.__main__:main"

@@ -27,8 +27,21 @@ def run_python(directory, *args):
 
 
 class SkillTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from spec import documents, repository
+        cls.temporary = tempfile.TemporaryDirectory()
+        index = repository.load(ROOT)
+        cls.skills = tuple(Path(cls.temporary.name) / name for name in ("scir", "scir-migrate"))
+        for skill in cls.skills:
+            documents.export(index, ROOT, skill, skill=skill.name)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temporary.cleanup()
+
     def test_frontmatter_and_portable_license(self):
-        for skill in SKILLS:
+        for skill in self.skills:
             with self.subTest(skill=skill.name):
                 source = (skill / "SKILL.md").read_text(encoding="utf-8")
                 _, header, body = source.split("---\n", 2)
@@ -43,7 +56,7 @@ class SkillTests(unittest.TestCase):
                 self.assertLess(len(body.splitlines()), 500)
 
     def test_references_travel_with_the_skill(self):
-        for skill in SKILLS:
+        for skill in self.skills:
             for path in skill.rglob("*.md"):
                 for link in LINK.findall(FENCE.sub("", path.read_text(encoding="utf-8"))):
                     parts = urlsplit(link)
@@ -54,7 +67,7 @@ class SkillTests(unittest.TestCase):
                         self.assertTrue(target.is_file())
 
     def test_reference_examples_after_relocation(self):
-        for skill in SKILLS:
+        for skill in self.skills:
             with tempfile.TemporaryDirectory() as tmp:
                 project = Path(tmp)
                 for client in (".agents", ".claude"):

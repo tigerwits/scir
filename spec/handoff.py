@@ -19,7 +19,7 @@ else:
 VERSION = "scir-repository-basis/1"
 MAX_FILES = 2048
 MAX_BYTES = 32_000_000
-DERIVED = ("SPEC.md", "docs/api.md")
+DERIVED = ()  # Exports are disposable; no tracked Markdown destinations.
 
 
 def sha(raw: bytes) -> str:
@@ -36,7 +36,9 @@ def linked_paths(index) -> set[str]:
     for record in index.records.values():
         fields = dict(record.fields)
         source = fields.get("source")
-        links = [(source, "section")]
+        links = []
+        if source is not None and source.symbol != "scir.ref":
+            links.append((source, "section"))
         for key, kind in (("tests", "test"), ("models", "model")):
             if key in fields:
                 if read_fields(fields[key]):
@@ -73,9 +75,13 @@ class Basis:
 def capture(root: Path, index, sources, *, extra=()) -> Basis:
     """Bind exact source/link/view bytes and source membership, not just headings."""
     root = root.resolve()
-    names = set(sources) | set(DERIVED) | linked_paths(index) | set(extra)
+    if __package__:
+        from .documents import validate_links
+    else:
+        from documents import validate_links
+    names = set(sources) | set(DERIVED) | linked_paths(index) | validate_links(index, root) | set(extra)
     # Contributor instructions and repository checker code are also maintenance inputs.
-    for name in ("AGENTS.md", "spec/OWNERSHIP.md"):
+    for name in ("AGENTS.md", "README.md", "spec/index.scir"):
         if (root / name).exists():
             names.add(name)
     names.update(p.relative_to(root).as_posix() for p in (root / "spec").glob("*.py"))

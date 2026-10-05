@@ -17,6 +17,7 @@ from spec import repository, handoff
 def fixture(root):
     for name in ("spec", "docs", "tests"):
         (root / name).mkdir(exist_ok=True)
+    (root / "spec/index.scir").write_text('collection("scir-repository", shard("spec/native.scir"), shard("spec/knowledge.scir"))\n', encoding="utf-8", newline="\n")
     (root / "docs/contract.md").write_bytes(b"# Policy\nDelivery is allowed.\n")
     (root / "tests/test_sample.py").write_bytes(b"import unittest\nclass Sample(unittest.TestCase):\n    def test_case(self): pass\n")
     for name, key in (("SPEC.md", "query-spec"), ("docs/api.md", "query-api")):
@@ -33,7 +34,7 @@ def fixture(root):
     (root / "spec/knowledge.scir").write_bytes(format_document((decision,)).encode())
     (root / "spec/requirements.scir").write_bytes(b"old\n")
     with contextlib.redirect_stdout(io.StringIO()):
-        if repository.maintenance(root, write_views=True) != 0:
+        if repository.maintenance(root) != 0:
             raise AssertionError("fixture refresh failed")
     return repository.load(root)
 
@@ -50,7 +51,7 @@ class RepositoryHandoffTests(unittest.TestCase):
             index = fixture(root)
             source = request(index, [{"op":"setField", "id":"D", "field":"reason", "value":"reviewed"}])
             for name in ("docs/contract.md", "tests/test_sample.py"):
-                before = handoff.capture(root, index, repository.SOURCES)
+                before = handoff.capture(root, index, repository.sources(root))
                 path = root / name
                 original = path.read_bytes()
                 path.write_bytes(original.replace(b"allowed", b"forbidden") if name.endswith(".md") else original + b"# changed evidence\n")
@@ -63,8 +64,8 @@ class RepositoryHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             index = fixture(root)
-            basis = handoff.capture(root, index, repository.SOURCES)
-            before = {name:(root / name).read_bytes() for name in repository.SOURCES}
+            basis = handoff.capture(root, index, repository.sources(root))
+            before = {name:(root / name).read_bytes() for name in repository.sources(root)}
             source = request(index, [{"op":"setField", "id":"R", "field":"wording", "value":str(p.text("Reviewed query wording."))}])
             result = repository.propose_handoff(index, source, basis.fingerprint, root)
             self.assertEqual({w["path"] for w in result["write_plan"]}, {"spec/native.scir", *handoff.DERIVED})
@@ -82,7 +83,7 @@ class RepositoryHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             index = fixture(root)
-            basis = handoff.capture(root, index, repository.SOURCES)
+            basis = handoff.capture(root, index, repository.sources(root))
             old = index.records["D"].term
             created = Term("record", (Term("E"), *old.args[1:]))
             source = request(index, [{"op":"createRecord", "record":str(created)}])
@@ -101,7 +102,7 @@ class RepositoryHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             index = fixture(root)
-            basis = handoff.capture(root, index, repository.SOURCES)
+            basis = handoff.capture(root, index, repository.sources(root))
             original = repository.validate
             def changing(document, checkout):
                 result = original(document, checkout)
@@ -119,7 +120,7 @@ class RepositoryHandoffTests(unittest.TestCase):
             source_path = root / "spec/knowledge.scir"
             source_path.write_bytes(format_document((large,)).encode())
             index = repository.load(root)
-            basis = handoff.capture(root, index, repository.SOURCES)
+            basis = handoff.capture(root, index, repository.sources(root))
             change = request(index, [{"op": "setField", "id": "D", "field": "reason",
                                       "value": str(p.text("y" * 800_000))}])
             from scir.changes import propose

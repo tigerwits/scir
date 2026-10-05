@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def fixture(root):
     for directory in ("docs", "tests", "proofs", "spec"):
         (root / directory).mkdir()
+    (root / "spec/index.scir").write_text('collection("scir-repository", shard("spec/native.scir"), shard("spec/knowledge.scir"))\n', encoding="utf-8", newline="\n")
     (root / "spec/native.scir").write_text("", encoding="utf-8", newline="\n")
     (root / "docs/rules.md").write_text("# Rules\n\n```text\n# Hidden\n```\n", encoding="utf-8", newline="\n")
     (root / "tests/test_rule.py").write_text(
@@ -36,7 +37,7 @@ def record(identifier="R", kind="Requirement", **extra):
 class RepositoryKnowledgeTests(unittest.TestCase):
     def test_authored_catalog_and_legacy_projection_share_preserved_ids(self):
         index = load(ROOT)
-        self.assertEqual(len(index.records), 60)
+        self.assertEqual(len([r for r in index.records.values() if r.kind in ("Requirement", "Decision", "Limitation", "Question")]), 60)
         self.assertTrue({"SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"} <= set(index.records))
         for identifier in ("SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"):
             self.assertIn("NoAgentTrials", select(index, (identifier,)).selected_ids)

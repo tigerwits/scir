@@ -8,7 +8,7 @@ import re
 MAX_SOURCE_BYTES = 2_000_000
 
 
-def local_file(root: Path, name: str, suffix: str) -> Path:
+def local_file(root: Path, name: str, suffix: str, *, missing_error=ValueError) -> Path:
     parts = name.split("/")
     if ("\\" in name or ":" in name or any(p in ("", ".", "..") for p in parts)
             or PurePosixPath(name).is_absolute() or not name.endswith(suffix)):
@@ -19,7 +19,7 @@ def local_file(root: Path, name: str, suffix: str) -> Path:
         if path.is_symlink():
             raise ValueError(f"symlink is not a source reference: {name!r}")
     if not path.is_file():
-        raise ValueError(f"missing source file: {name!r}")
+        raise missing_error(f"missing source file: {name!r}")
     return path
 
 

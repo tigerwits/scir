@@ -1,4 +1,4 @@
-"""Local links and executable examples in maintained documentation."""
+"""Local links and executable examples in canonical SCIR document records."""
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -8,17 +8,11 @@ import unittest
 from urllib.parse import unquote, urlsplit
 
 from scir import format_document, parse_document
+from spec import documents as corpus, repository
 
 ROOT = Path(__file__).resolve().parents[1]
-FENCE = re.compile(r"^```([\w-]*)[^\n]*\n(.*?)^```[ \t]*$", re.M | re.S)
-LINK = re.compile(r"\[[^\]\n]*\]\(([^)\s]+)\)")
-
-
-def documents():
-    return (sorted(ROOT.glob("*.md")) + sorted((ROOT / "docs").rglob("*.md"))
-            + sorted((ROOT / "skills").rglob("*.md"))
-            + sorted((ROOT / "examples").rglob("*.md"))
-            + sorted((ROOT / "spec").glob("*.md")))
+FENCE = corpus.FENCE
+LINK = corpus.LINK
 
 
 def headings(source):
@@ -32,33 +26,40 @@ def headings(source):
 
 
 class DocumentationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.index = repository.load(ROOT)
+        cls.documents = corpus.rendered_documents(cls.index, ROOT)
+
     def test_local_markdown_links(self):
-        for path in documents():
-            text = FENCE.sub("", path.read_text(encoding="utf-8"))
+        for name, source in self.documents.items():
+            path = ROOT / name
+            text = FENCE.sub("", source)
             for target in LINK.findall(text):
                 parts = urlsplit(target)
                 if parts.scheme or parts.netloc:
                     continue
                 resolved = (path.parent / unquote(parts.path)).resolve() if parts.path else path
-                with self.subTest(path=str(path.relative_to(ROOT)), target=target):
+                with self.subTest(path=name, target=target):
                     self.assertTrue(resolved.is_relative_to(ROOT))
-                    self.assertTrue(resolved.exists(), target)
+                    key = resolved.relative_to(ROOT).as_posix()
+                    self.assertTrue(key in self.documents or resolved.exists(), target)
                     if parts.fragment:
-                        anchors = headings(FENCE.sub("", resolved.read_text(encoding="utf-8")))
-                        self.assertIn(unquote(parts.fragment), anchors)
+                        target_text = self.documents[key] if key in self.documents else resolved.read_text(encoding="utf-8")
+                        self.assertIn(unquote(parts.fragment), headings(FENCE.sub("", target_text)))
 
     def test_python_examples(self):
-        for path in documents():
-            for language, source in FENCE.findall(path.read_text(encoding="utf-8")):
+        for name, text in self.documents.items():
+            for language, source in FENCE.findall(text):
                 if language == "python":
-                    with self.subTest(path=str(path.relative_to(ROOT))), redirect_stdout(StringIO()):
-                        exec(compile(source, str(path), "exec"), {})
+                    with self.subTest(path=name), redirect_stdout(StringIO()):
+                        exec(compile(source, name, "exec"), {})
 
     def test_scir_examples(self):
-        for path in documents():
-            for language, source in FENCE.findall(path.read_text(encoding="utf-8")):
+        for name, text in self.documents.items():
+            for language, source in FENCE.findall(text):
                 if language == "scir":
-                    with self.subTest(path=str(path.relative_to(ROOT))):
+                    with self.subTest(path=name):
                         doc = parse_document(source)
                         self.assertEqual(parse_document(format_document(doc)), doc)
         for path in (ROOT / "examples").glob("*.scir"):
@@ -71,9 +72,9 @@ class DocumentationTests(unittest.TestCase):
                 runpy.run_path(str(path), run_name="__main__")
 
     def test_no_unclosed_fences(self):
-        for path in documents():
-            lines = path.read_text(encoding="utf-8").splitlines()
-            self.assertEqual(sum(line.startswith("```") for line in lines) % 2, 0, str(path))
+        for name, text in self.documents.items():
+            lines = text.splitlines()
+            self.assertEqual(sum(line.startswith("```") for line in lines) % 2, 0, name)
 
 
 if __name__ == "__main__":

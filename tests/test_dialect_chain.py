@@ -16,6 +16,7 @@ from scir import Term, digest, format_document, parse, parse_document, replace_a
 from scir.annotations import Bundle, annotate
 from scir.constraints import check
 from scir.relations import decode, encode
+from scir.profile import read_text
 
 ROOT = Path(__file__).resolve().parents[1]
 CASE = ROOT / "examples/dialect-chain"
@@ -33,7 +34,8 @@ def invoke(directory=CASE, *args):
 
 class DialectChainTests(unittest.TestCase):
     def test_fixed_source_is_bound_to_the_oracle(self):
-        self.assertEqual(hashlib.sha256((CASE / "source.md").read_bytes()).hexdigest(), chain.SOURCE_SHA256)
+        source = read_text(parse_document((CASE / "sources.scir").read_text())[0].args[2])
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(), chain.SOURCE_SHA256)
         self.assertEqual(len(chain.COMMITMENTS), 4)
 
     def test_contracts_are_literal_prefixes(self):
@@ -255,7 +257,7 @@ class DialectChainTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "dialect-chain"
             shutil.copytree(CASE, project)
-            source = project / "source.md"
+            source = project / "sources.scir"
             source.write_text(source.read_text().replace("Error", "Success"))
             result = invoke(project, "--json")
             self.assertEqual(result.returncode, 2)

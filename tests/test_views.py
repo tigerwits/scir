@@ -56,10 +56,14 @@ class ContentViewTests(unittest.TestCase):
         for path, data in UPDATES(self.document if document is None else document, self.root):
             path.write_bytes(data)
 
-    def test_repository_views_are_fresh(self):
-        document = parse_document((ROOT / "tests/fixtures/native-migration.scir").read_text())
-        self.assertEqual(CHECK(document), ())
-        self.assertEqual(UPDATES(document), [])
+    def test_current_repository_has_no_tracked_view_targets(self):
+        # The remaining methods check the independent legacy renderer and its
+        # fixed historical text. Current sources have no mutable Markdown views.
+        from spec import repository
+        index = repository.load(ROOT)
+        self.assertEqual(repository.updates(index, ROOT), [])
+        self.assertFalse((ROOT / "SPEC.md").exists())
+        self.assertFalse((ROOT / "docs/api.md").exists())
 
     def test_initial_migration_preserves_the_existing_normative_contract(self):
         # Independent pre-migration text, not an expectation derived from records.

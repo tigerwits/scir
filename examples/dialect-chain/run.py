@@ -21,6 +21,23 @@ from contracts import (
 HERE = Path(__file__).resolve().parent
 
 
+def frozen_source(path):
+    from scir.knowledge import build_index
+    from scir.profile import read_text
+    source = path.read_text(encoding="utf-8")
+    index = build_index(parse_document(source), collection="frozen-example-input")
+    if len(index.records) != 1:
+        raise ValueError("expected exactly one frozen Source record")
+    record, = index.records.values()
+    if record.kind != "Source":
+        raise ValueError("expected a frozen Source record")
+    raw = read_text(record.payload).encode("utf-8")
+    value = dict(record.fields).get("sha256")
+    if value is None or value.args or hashlib.sha256(raw).hexdigest() != value.symbol:
+        raise ValueError("source changed: frozen source hash mismatch")
+    return raw
+
+
 def read_document(path: Path):
     with path.open(encoding="utf-8") as stream:
         text = stream.read(2_000_001)
@@ -35,7 +52,7 @@ def review(document, *, generic=False):
 
 
 def run(stages: Path | None = None) -> dict:
-    source = (HERE / "source.md").read_bytes()
+    source = frozen_source(HERE / "sources.scir")
     if hashlib.sha256(source).hexdigest() != SOURCE_SHA256:
         raise ValueError("source changed: review the oracle before running another case")
     documents = tuple(read_document((stages or HERE / "stages") / name) for name in FILES)
@@ -125,7 +142,7 @@ def main(argv=None) -> int:
             print(json.dumps(report, ensure_ascii=False, indent=2))
         else:
             print("Fixed source:")
-            print((HERE / "source.md").read_text(encoding="utf-8").strip())
+            print(frozen_source(HERE / "sources.scir").decode("utf-8").strip())
             print("\nStage        roots nodes chars  acceptance (generic -> timeout)")
             for row in report["stages"]:
                 flags = " ".join("pass" if accepted else "fail" for accepted in row["accepts"])
