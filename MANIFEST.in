@@ -1,9 +1,10 @@
-include SPEC.md AGENTS.md CHANGELOG.md SECURITY.md
-recursive-include docs *.md *.json
-recursive-include examples *.scir *.scix *.py *.txt *.md
+include README.md AGENTS.md
+recursive-include docs *.scir *.json
+recursive-include examples *.scir *.scix *.py *.txt
 recursive-include tests *.py *.scir
 recursive-include tools *.py
 global-exclude __pycache__ *.py[cod]
-recursive-include skills *.md *.py LICENSE
-recursive-include spec *.md *.py *.scir
-recursive-include proofs *.lean *.md lean-toolchain
+recursive-include skills *.scir *.py LICENSE
+recursive-include spec *.py *.scir
+recursive-include proofs *.lean lean-toolchain
+recursive-include .github *.py *.yml

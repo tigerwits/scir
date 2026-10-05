@@ -29,7 +29,7 @@ def document(body, source=SOURCE):
 
 def load(name):
     folder = EXAMPLES / name
-    return parse_document((folder / "knowledge.scir").read_text(encoding="utf-8")), (folder / "source.md").read_bytes()
+    return parse_document((folder / "knowledge.scir").read_text(encoding="utf-8")), MODULE["frozen_source"](folder / "sources.scir")
 
 
 def inventory(root):
@@ -209,8 +209,14 @@ class KnowledgeTests(unittest.TestCase):
                 self.assertEqual(code, 1, err)
                 self.assertEqual(out, "")
             path.write_bytes(original)
-            source = root / "architecture/source.md"
-            source.write_bytes(source.read_bytes() + b"\n")
+            source = root / "architecture/sources.scir"
+            from scir.profile import application, read_fields, text
+            frozen = parse_document(source.read_text())[0]
+            raw = MODULE["frozen_source"](source) + b"\n"
+            fields = dict(read_fields(frozen))
+            fields["sha256"] = Term(sha256(raw).hexdigest())
+            frozen = application("record", (*frozen.args[:2], text(raw.decode())), fields=tuple(fields.items()))
+            source.write_text(format_document((frozen,)))
             code, out, err = self.run_cli(root, "--case", "architecture")
             self.assertEqual(code, 1)
             self.assertIn("snapshot", err)

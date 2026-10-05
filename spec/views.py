@@ -46,7 +46,7 @@ def query_records(index):
             raise ProfileError("only requirements use projection: native")
         has_query = bool(QUERY_FIELDS & fields.keys())
         if not has_query:
-            if fields.get("ownership") == Term("record"):
+            if record.kind == "Requirement" and fields.get("ownership") == Term("record"):
                 raise ProfileError("a record owner needs query content")
             continue
         if (projected is None or not {"topic", "viewOrder", "wording"} <= fields.keys()

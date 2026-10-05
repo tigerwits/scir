@@ -3,22 +3,23 @@ from pathlib import Path
 import ast
 import unittest
 from scir import parse_document
-from spec import catalog
+from spec import catalog, documents, repository
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class RepositoryOwnershipTests(unittest.TestCase):
     def test_spec_and_generated_hints_name_the_authoritative_shard(self):
-        source = (ROOT / "SPEC.md").read_text(encoding="utf-8")
-        self.assertIn("[the maintained SCIR records](spec/native.scir)", source)
+        index = repository.load(ROOT)
+        source = documents.render_document(index, "SPEC.md")
+        self.assertIn("SCIR records own this entire contract", source)
         document = parse_document((ROOT / "tests/fixtures/native-migration.scir").read_text(encoding="utf-8"))
         for examples in (False, True):
             banner = catalog.render_queries(document, examples=examples).splitlines()[0]
             self.assertIn("spec/native.scir", banner)
             self.assertNotIn("spec/requirements.scir", banner)
         for name in ("SPEC.md", "docs/api.md"):
-            self.assertNotIn("Maintained in spec/requirements.scir", (ROOT / name).read_text(encoding="utf-8"))
+            self.assertNotIn("Maintained in spec/requirements.scir", documents.render_document(index, name))
 
     def test_reusable_catalog_does_not_import_or_dispatch_to_orchestration(self):
         source = (ROOT / "spec/catalog.py").read_text(encoding="utf-8")

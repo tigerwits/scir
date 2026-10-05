@@ -23,6 +23,23 @@ FORMS = tuple(map(parse_pattern, (
 )))
 
 
+def frozen_source(path):
+    from scir.knowledge import build_index
+    from scir.profile import read_text
+    source = path.read_text(encoding="utf-8")
+    index = build_index(parse_document(source), collection="frozen-example-input")
+    if len(index.records) != 1:
+        raise ValueError("expected exactly one frozen Source record")
+    record, = index.records.values()
+    if record.kind != "Source":
+        raise ValueError("expected a frozen Source record")
+    raw = read_text(record.payload).encode("utf-8")
+    value = dict(record.fields).get("sha256")
+    if value is None or value.args or hashlib.sha256(raw).hexdigest() != value.symbol:
+        raise ValueError("source changed: frozen source hash mismatch")
+    return raw
+
+
 def source_ids(source: bytes) -> set[str]:
     ids = re.findall(r"^(S[1-9][0-9]*): .+", source.decode("utf-8"), re.M)
     if not ids or len(ids) != len(set(ids)):
@@ -118,7 +135,7 @@ def main(argv=None) -> int:
             folder = ROOT / name
             text = (folder / "knowledge.scir").read_bytes().decode("utf-8")
             document = parse_document(text)
-            issues = validate(document, (folder / "source.md").read_bytes())
+            issues = validate(document, frozen_source(folder / "sources.scir"))
             if issues or text != format_document(document):
                 for issue in issues:
                     print(f"{name} {issue.path}: {issue.rule}: {issue.message}", file=sys.stderr)

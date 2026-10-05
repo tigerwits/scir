@@ -35,11 +35,28 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv[:1] == ["knowledge"]:
         return _repository().main(argv[1:])
+    if argv[:1] == ["export"]:
+        export_parser = argparse.ArgumentParser(description="Export disposable docs or a portable skill")
+        export_parser.add_argument("--out", type=Path, required=True)
+        export_parser.add_argument("--skill", choices=("scir", "scir-migrate"))
+        options = export_parser.parse_args(argv[1:])
+        repo = _repository()
+        try:
+            index = repo.load(ROOT)
+            basis = repo.handoff.capture(ROOT, index, repo.sources(ROOT))
+            result = repo.documents.export(index, ROOT, options.out, skill=options.skill)
+            if repo.handoff.capture(ROOT, index, repo.sources(ROOT)) != basis:
+                raise ValueError("export inputs changed; discard the disposable output")
+            repo._emit(sys.stdout, result)
+            return 0
+        except (ValueError, OSError, RecursionError) as error:
+            print(f"export incomplete: {error}", file=sys.stderr)
+            return 2
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("file", nargs="?", type=Path, default=None)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--markdown", action="store_true", help="print the requirement index")
-    mode.add_argument("--write-views", action="store_true", help="refresh the two generated query sections")
+    mode.add_argument("--write-views", action="store_true", help="legacy fixtures only; current sources use export --out")
     mode.add_argument("--legacy", action="store_true", help="export the native compatibility catalog to stdout")
     args = parser.parse_args(argv)
     if args.legacy:

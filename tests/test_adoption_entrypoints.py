@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class AdoptionEntrypointTests(unittest.TestCase):
     def test_readme_routes_current_profiles_and_self_use_explicitly(self):
         source = (ROOT / 'README.md').read_text(encoding='utf-8')
-        for target in ('skills/scir/SKILL.md', 'skills/scir-migrate/SKILL.md',
-                       'docs/self-hosting.md', 'skills/scir/scripts/working_example.py',
-                       'tools/check_self_host.py', 'docs/workflow-tools.md',
-                       'examples/consumer-lifecycle/README.md', 'examples/consumer-lifecycle/run.py'):
+        for target in ('skills/scir/knowledge.scir', 'skills/scir-migrate/knowledge.scir',
+                       'spec/index.scir', 'skills/scir/scripts/working_example.py',
+                       'tools/check_self_host.py', 'spec/workflows.scir',
+                       'examples/guides.scir', 'examples/consumer-lifecycle/run.py'):
             self.assertIn(target, source)
             self.assertTrue((ROOT / target).is_file())

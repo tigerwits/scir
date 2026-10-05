@@ -44,7 +44,10 @@ class RequirementCatalogTests(unittest.TestCase):
         text = CATALOG.read_text(encoding="utf-8")
         document = parse_document(text)
         self.assertEqual(format_document(document), text)
-        self.assertEqual(CHECK(document), ())
+        from spec import documents, repository
+        exported = self.root / "export"
+        documents.export(repository.load(ROOT), ROOT, exported)
+        self.assertEqual(CHECK(document, exported), ())
         cli = query(document, parse_pattern("requirement(?id, CLI, ?obligation)"))
         self.assertIn("CanonicalOutput", [str(h.bindings["id"]) for h in cli])
 

@@ -15,19 +15,20 @@ from scir.profile import LimitError, ProfileError, read_fields, read_tuple
 if __package__:
     from .locations import declarations, local_file, read_source
     from .views import QUERY_FIELDS
-    from . import views, handoff
+    from . import views, handoff, documents
 else:
     from locations import declarations, local_file, read_source
     from views import QUERY_FIELDS
-    import views, handoff
+    import views, handoff, documents
 
 ROOT = Path(__file__).resolve().parents[1]
 COLLECTION = "scir-repository"
-SOURCES = ("spec/native.scir", "spec/knowledge.scir")
+def sources(root=ROOT):
+    return documents.source_paths(root)
 KINDS = frozenset(("Requirement", "Decision", "Limitation", "Question"))
 AREAS = frozenset(("Core", "Syntax", "Patterns", "Tree", "Annotations", "Transport",
                    "Constraints", "CLI", "Structured", "Notation", "Working", "Changes",
-                   "Workflow", "Evidence"))
+                   "Workflow", "Evidence", "Documentation"))
 FIELDS = frozenset(("ownership", "source", "area", "tests", "models", "status",
                     "dependsOn", "scope", "evidence", "reason", "supersedes", "projection")) | QUERY_FIELDS
 
@@ -70,15 +71,26 @@ def validate(document: Document, root: Path = ROOT) -> Index:
 
     for record in index.records.values():
         fields = dict(record.fields)
-        if record.kind not in KINDS or set(fields) - FIELDS:
+        allowed = FIELDS | documents.FIELDS if record.kind in documents.KINDS else FIELDS
+        if record.kind not in KINDS | documents.KINDS or set(fields) - allowed:
             raise ProfileError("unknown repository kind or field: " + record.id)
-        if not {"ownership", "source", "area"} <= fields.keys():
+        required = {"ownership", "area"} if record.kind in documents.KINDS else {"ownership", "source", "area"}
+        if not required <= fields.keys():
             raise ProfileError("record needs ownership, source and area: " + record.id)
         if _leaf(fields["ownership"], "ownership") not in ("index", "record"):
             raise ProfileError("ownership must be index or record")
         if _leaf(fields["area"], "area") not in AREAS:
             raise ProfileError("unknown repository area")
-        location(fields["source"], "section")
+        source = fields.get("source")
+        if source is not None:
+            if source.symbol == "scir.ref":
+                target = index.records[source.args[0].symbol]
+                if target.kind not in documents.KINDS:
+                    raise ProfileError("source reference must name an owning document section")
+            else:
+                # Explicit external section locations remain available for independent
+                # legacy fixtures. The maintained repository uses SCIR references.
+                location(source, "section")
         if record.kind == "Requirement" and "tests" not in fields:
             raise ProfileError("requirement needs independent test links")
         for field, kind in (("tests", "test"), ("models", "model")):
@@ -92,12 +104,14 @@ def validate(document: Document, root: Path = ROOT) -> Index:
         if record.kind in ("Decision", "Question") and "status" not in fields:
             raise ProfileError("decision/question needs an authored status")
     views.validate(index)
+    documents.validate(index)
+    documents.validate_links(index, root)
     return index
 
 
 def load(root: Path = ROOT) -> Index:
     document = ()
-    for name in SOURCES:
+    for name in sources(root):
         source = read_source(local_file(root, name, ".scir"))
         shard = native(source)
         if format_document(shard) != source:
@@ -107,8 +121,8 @@ def load(root: Path = ROOT) -> Index:
 
 
 def updates(index: Index, root: Path = ROOT):
-    """Preflight both directly rendered destinations before any explicit write."""
-    return views.updates(index, root)
+    """No tracked derived targets; preserve the source-plan adapter boundary."""
+    return []  # Human and skill views are fresh, disposable exports, never source targets.
 
 
 def propose_checked(index: Index, request: str, root: Path = ROOT):
@@ -116,7 +130,6 @@ def propose_checked(index: Index, request: str, root: Path = ROOT):
     from scir.changes import propose
     proposal = propose(index, request)
     candidate = validate(proposal.document, root)
-    updates(candidate, root)  # Preflight derived views, but do not write them.
     return proposal
 
 
@@ -125,19 +138,21 @@ def propose_handoff(index: Index, request: str, expected_basis: str,
     """Plan a source-owned update against exact maintenance input bytes."""
     from scir.changes import ConflictError, propose
     root = root.resolve()
-    before = handoff.capture(root, index, SOURCES)
+    before = handoff.capture(root, index, sources(root))
     if expected_basis != before.fingerprint:
         raise ConflictError("repository input basis changed; select fresh context")
     proposed = propose(index, request)
-    document, shards = handoff.partition(proposed.document, before, SOURCES, placements)
+    document, shards = handoff.partition(proposed.document, before, sources(root), placements)
     # Capture newly introduced source links too, before checking their contents.
     candidate_index = build_index(document, collection=COLLECTION)
-    prospective = handoff.capture(root, index, SOURCES, extra=handoff.linked_paths(candidate_index))
+    documents.validate(candidate_index)
+    candidate_inputs = handoff.linked_paths(candidate_index) | documents.validate_links(candidate_index, root)
+    prospective = handoff.capture(root, index, sources(root), extra=candidate_inputs)
     candidate = validate(document, root)
     derived = updates(candidate, root)
     write_plan = handoff.writes(root, prospective, shards, derived)
-    if (handoff.capture(root, index, SOURCES) != before or
-            handoff.capture(root, index, SOURCES, extra=handoff.linked_paths(candidate)) != prospective):
+    if (handoff.capture(root, index, sources(root)) != before or
+            handoff.capture(root, index, sources(root), extra=candidate_inputs) != prospective):
         raise ConflictError("repository inputs changed during proposal validation")
     return {"version": "scir-repository-proposal/1", "collection": COLLECTION,
             "before_snapshot": index.snapshot, "candidate_snapshot": candidate.snapshot,
@@ -145,8 +160,8 @@ def propose_handoff(index: Index, request: str, expected_basis: str,
             "request": proposed.request.as_dict(), "placements": {} if placements is None else placements,
             "records": [str(t) for t in document], "write_plan": write_plan,
             "input_basis": before.packet(), "commit_basis": prospective.packet(),
-            "repository_contract": "scir-repository/1", "complete": True,
-            "source_written": False, "validation": {"profile": "scir-repository/1", "complete": True}}
+            "repository_contract": "scir-repository/2", "complete": True,
+            "source_written": False, "validation": {"profile": "scir-repository/2", "complete": True}}
 
 
 def maintenance(root: Path = ROOT, *, write_views=False, markdown=False) -> int:
@@ -154,18 +169,13 @@ def maintenance(root: Path = ROOT, *, write_views=False, markdown=False) -> int:
         # Location resolvers return absolute canonical paths, including on macOS
         # temporary-directory aliases and Windows case/short-name aliases.
         root = root.resolve()
-        index = load(root)
-        changes = updates(index, root)
-        if changes and not write_views:
-            raise ProfileError("stale derived files: " + ", ".join(p.relative_to(root).as_posix() for p, _ in changes))
         if write_views:
-            for path, data in changes:
-                path.write_bytes(data)
-            print(f"Refreshed {len(changes)} derived files; authoritative records were not changed.")
-        elif markdown:
+            raise ProfileError("tracked views are retired; use export --out NEW_DIRECTORY")
+        index = load(root)
+        if markdown:
             print(views.render(index), end="")
         else:
-            print(f"Checked {len(index.records)} repository records and all derived views; linked tests were not run.")
+            print(f"Checked {len(index.records)} repository records and document structure; linked tests were not run.")
         return 0
     except ProfileError as error:
         print(str(error), file=sys.stderr)
@@ -190,7 +200,11 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("check")
-    sub.add_parser("refresh")
+    sub.add_parser("list")
+    search = sub.add_parser("search")
+    search.add_argument("--text", required=True)
+    show = sub.add_parser("show")
+    show.add_argument("--id", action="append", required=True)
     pick = sub.add_parser("select")
     pick.add_argument("--id", action="append", required=True)
     review = sub.add_parser("affected")
@@ -207,8 +221,8 @@ def main(argv=None) -> int:
     diagnostic.add_argument("--id", action="append", required=True)
     diagnostic.add_argument("--encoding", choices=("native", "notation"), default="native")
     args = parser.parse_args(argv)
-    if args.command in (None, "check", "refresh"):
-        return maintenance(write_views=args.command == "refresh")
+    if args.command in (None, "check"):
+        return maintenance()
     try:
         from scir.knowledge import select, affected
         if args.command in ("select", "propose"):
@@ -217,8 +231,26 @@ def main(argv=None) -> int:
             if (args.view == "artifact") != (args.expected_artifact is not None):
                 raise ProfileError("artifact view requires its expected hash; other views forbid it")
         index = load()
-        basis = handoff.capture(ROOT, index, SOURCES)
-        if args.command == "select":
+        basis = handoff.capture(ROOT, index, sources(ROOT))
+        if args.command in ("list", "search"):
+            items = documents.inventory(index)
+            if args.command == "search":
+                needle = args.text.casefold()
+                items = [item for item in items if needle in (item["id"] + " " + item["title"] + " " + str(index.records[item["id"]].payload)).casefold()]
+            result = {"collection": COLLECTION, "source_snapshot": index.snapshot, "items": items}
+        elif args.command == "show":
+            selection = select(index, tuple(args.id))
+            rendered = []
+            for term in selection.document:
+                item = index.records[term.args[0].symbol]
+                rendered.append("## " + item.id + "\n\n" + (documents.render_blocks(item, index) if item.kind in documents.KINDS else str(item.term)) + "\n")
+            output = "\n".join(rendered)
+            if handoff.capture(ROOT, index, sources(ROOT)) != basis:
+                from scir.changes import ConflictError
+                raise ConflictError("repository inputs changed during command")
+            print(output, end="")
+            return 0
+        elif args.command == "select":
             result = select(index, tuple(args.id)).as_dict()
         elif args.command == "diagnose":
             from scir.diagnostics import diagnose
@@ -233,7 +265,7 @@ def main(argv=None) -> int:
                                      parse_constant=_constant) if args.placements else None)
             result = propose_handoff(index, request, args.basis, ROOT, placements=placements)
         result.setdefault("input_basis", basis.packet())
-        result["repository_contract"] = "scir-repository/1"
+        result["repository_contract"] = "scir-repository/2"
         if args.command in ("select", "propose") and args.view != "full":
             if __package__:
                 from .delivery import present
@@ -243,7 +275,7 @@ def main(argv=None) -> int:
                                 encoding=args.encoding or "native")
             output = delivered.packet if args.view == "compact" else delivered.checked_artifact(args.expected_artifact)
             result = json.loads(output)  # Preserve the exact sorted JSON order and final LF in _emit.
-        if handoff.capture(ROOT, index, SOURCES) != basis:
+        if handoff.capture(ROOT, index, sources(ROOT)) != basis:
             from scir.changes import ConflictError
             raise ConflictError("repository inputs changed during command")
         _emit(sys.stdout, result)

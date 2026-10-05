@@ -24,7 +24,8 @@ class AdoptionExampleTests(unittest.TestCase):
     def test_portable_working_example_works_after_relocation(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "unrelated-project/.agents/skills/scir"
-            shutil.copytree(ROOT / "skills/scir", target)
+            from spec import documents, repository
+            documents.export(repository.load(ROOT), ROOT, target, skill="scir")
             before = {p.relative_to(target): p.read_bytes() for p in target.rglob("*") if p.is_file()}
             for flags in ((), ("-O",)):
                 result = run(tmp, *flags, target / "scripts/working_example.py")
@@ -47,9 +48,11 @@ class AdoptionExampleTests(unittest.TestCase):
         self.assertEqual([item["exit"] for item in report["observations"]], [0, 0, 0, 1, 0, 0, 0, 0])
 
     def test_migration_routes_to_current_profile_rules(self):
-        source = (ROOT / "skills/scir-migrate/SKILL.md").read_text(encoding="utf-8")
+        from spec import documents, repository
+        index = repository.load(ROOT)
+        source = documents.render_document(index, "skills/scir-migrate/SKILL.md")
         self.assertIn("references/working.md", source)
-        guide = (ROOT / "skills/scir-migrate/references/working.md").read_text(encoding="utf-8")
+        guide = documents.render_document(index, "skills/scir-migrate/references/working.md")
         for term in ("t\"...\"", "working/1", "input-basis", "service", "incomplete"):
             self.assertIn(term, guide)
         self.assertIn("check_self_host.py", (ROOT / "AGENTS.md").read_text(encoding="utf-8"))

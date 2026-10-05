@@ -9,7 +9,7 @@ from scir.profile import Limits, ProfileError
 
 def present(index: Index, result: dict, *, kind: str, encoding: str = "native"):
     """Keep exact bases and source-owned write plans in the retrievable artifact."""
-    if result["collection"] != index.collection or result["repository_contract"] != "scir-repository/1":
+    if result["collection"] != index.collection or result["repository_contract"] != "scir-repository/2":
         raise ProfileError("repository delivery requires its validated collection result")
     guards = {"input_basis": result["input_basis"]["digest"]}
     header = {"kind": kind, "collection": index.collection, "guards": guards,

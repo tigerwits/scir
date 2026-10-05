@@ -1,5 +1,5 @@
 """Build/install smoke checks outside the checkout; no runtime test dependencies."""
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import json
 import os
 import subprocess
@@ -18,6 +18,30 @@ def package_bytes(wheel):
         return {name: archive.read(name) for name in archive.namelist() if name.startswith('scir/')}
 
 
+def unpack_source(archive, destination):
+    """Extract bounded regular source files without accepting archive links."""
+    roots, count, total = set(), 0, 0
+    with tarfile.open(archive) as package:
+        for member in package:
+            path = PurePosixPath(member.name)
+            if path.is_absolute() or any(p in ("", ".", "..") for p in path.parts) or "\\" in member.name or ":" in member.name:
+                raise ValueError("unsafe source archive path")
+            roots.add(path.parts[0])
+            if member.isdir():
+                continue
+            count += 1
+            total += member.size
+            if not member.isfile() or count > 10000 or total > 32_000_000:
+                raise ValueError("source archive must contain bounded regular files")
+            target = destination.joinpath(*path.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with package.extractfile(member) as source:
+                target.write_bytes(source.read())
+    if len(roots) != 1:
+        raise ValueError("source archive must have one project root")
+    return destination / roots.pop()
+
+
 def main():
     root = Path(__file__).resolve().parents[1]
     wheels, archives = list((root/'dist').glob('*.whl')), list((root/'dist').glob('*.tar.gz'))
@@ -28,14 +52,17 @@ def main():
     assert all('scir/'+name in content for name in required)
     with tarfile.open(archives[0]) as archive:
         names = {name.partition('/')[2] for name in archive.getnames() if '/' in name}
-        assert {'proofs/ProfileLaws.lean', 'proofs/lean-toolchain', 'docs/profiles-api.md',
+        assert '.github/maintenance/prune_merged_branches.py' in names
+        assert {name for name in names if name.lower().endswith(('.md', '.markdown', '.mdx'))} == {'README.md', 'AGENTS.md'}
+        assert {'proofs/ProfileLaws.lean', 'proofs/lean-toolchain', 'docs/guides.scir',
                 'examples/working-profile/notes.scix', 'tools/study_profiles.py',
                 'examples/consumer-lifecycle/policy.py', 'examples/consumer-lifecycle/notes.scir',
-                'docs/workflow-tools.md', 'tools/study_delivery.py',
-                'docs/dialect-contracts.md', 'docs/dialect-rules.md', 'tools/check_dialects.py',
+                'spec/workflows.scir', 'tools/study_delivery.py',
+                'spec/profiles.scir', 'spec/index.scir', 'tools/check_dialects.py',
                 'examples/consumer-lifecycle/dialect.py', 'examples/consumer-lifecycle/dialect_run.py'} <= names
     with tempfile.TemporaryDirectory() as temp:
         workspace = Path(temp)
+        source_project = unpack_source(archives[0], workspace / 'source')
         rebuilt = workspace/'rebuilt'
         rebuilt.mkdir()
         run('wheel', '--no-deps', str(archives[0]), '--wheel-dir', str(rebuilt), cwd=workspace)
@@ -45,6 +72,12 @@ def main():
             site = workspace/f'site{number}'
             run('install', '--no-deps', '--target', str(site), str(wheel), cwd=workspace)
             env = dict(os.environ, PYTHONPATH=str(site), PYTHONDONTWRITEBYTECODE='1')
+            # The sdist owns a complete SCIR collection, not only a buildable wheel.
+            subprocess.run([sys.executable, str(source_project / 'spec/check.py')], cwd=workspace, env=env, check=True)
+            for skill in ('scir', 'scir-migrate'):
+                subprocess.run([sys.executable, str(source_project / 'spec/check.py'), 'export', '--skill', skill,
+                                '--out', str(workspace / f'{number}-{skill}')], cwd=workspace, env=env,
+                               check=True, stdout=subprocess.DEVNULL)
             smoke = '''import json, pathlib, scir
 from scir.notation import lower
 from scir.knowledge import build_index, select

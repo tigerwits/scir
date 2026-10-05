@@ -27,32 +27,28 @@ def request(index, operations):
 
 
 class RepositoryWorkflowTests(unittest.TestCase):
-    def test_refresh_is_explicit_idempotent_and_preserves_source_and_outer_prose(self):
+    def test_check_is_idempotent_and_never_writes_source_or_exports(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             prepare(root)
-            sources = {name:(root / name).read_bytes() for name in repository.SOURCES}
+            before = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
             with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                self.assertEqual(repository.maintenance(root), 1)
-                self.assertEqual((root / "spec/requirements.scir").read_text(), "old\n")
-                self.assertEqual(repository.maintenance(root, write_views=True), 0)
+                self.assertEqual(repository.maintenance(root), 0)
                 self.assertEqual(repository.maintenance(root), 0)
             self.assertEqual(repository.updates(repository.load(root), root), [])
-            for name, raw in sources.items():
-                self.assertEqual((root / name).read_bytes(), raw)
-            for name in ("SPEC.md", "docs/api.md"):
-                self.assertTrue((root / name).read_text().startswith("# Public\n\nOutside stays.\n"))
-                self.assertTrue((root / name).read_text().endswith("Tail stays.\n"))
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
 
-    def test_late_preflight_failure_prevents_all_derived_writes(self):
+    def test_retired_tracked_view_write_fails_without_writes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             prepare(root)
-            (root / "docs/api.md").write_text("missing markers", encoding="utf-8", newline="\n")
-            before = {p:p.read_bytes() for p in root.rglob("*") if p.is_file()}
-            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                self.assertEqual(repository.maintenance(root, write_views=True), 2)
-            self.assertEqual(before, {p:p.read_bytes() for p in before})
+            before = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
+            out, err = io.StringIO(), io.StringIO()
+            with redirect_stdout(out), redirect_stderr(err):
+                self.assertEqual(repository.maintenance(root, write_views=True), 1)
+            self.assertEqual(out.getvalue(), "")
+            self.assertIn("retired", err.getvalue())
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
 
     def test_repository_candidate_rejects_links_accepted_by_generic_working_profile(self):
         from scir.changes import propose

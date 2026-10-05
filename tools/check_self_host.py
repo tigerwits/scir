@@ -62,16 +62,16 @@ def run(root=ROOT):
         require(proposal["source_written"] is False, "proposal claims persistence")
         require([entry["path"] for entry in proposal["write_plan"]] == ["spec/knowledge.scir"],
                 "narrow update crossed its source ownership")
-        # Change authoritative prose without changing its heading or SCIR record.
-        authority = scratch / "docs/structured-profiles.md"
-        authority.write_bytes(authority.read_bytes() + b"\n<!-- isolated self-host fixture -->\n")
+        # Change independent evidence without changing its heading or SCIR record.
+        authority = scratch / "tests/test_named_roles.py"
+        authority.write_bytes(authority.read_bytes() + b"\n# isolated self-host fixture\n")
         failure = invoke(scratch, "knowledge", "propose", "--basis", packet["input_basis"]["digest"],
                          "--change", str(request_path), expected=1)
-        require(failure["status"] == "conflict", "authoritative change did not invalidate the basis")
+        require(failure["status"] == "conflict", "evidence change did not invalidate the basis")
         fresh = invoke(scratch, "knowledge", "select", "--id", "NamedRoles")
         require(fresh["source_snapshot"] == packet["source_snapshot"], "fixture changed SCIR content")
         require(fresh["input_basis"]["digest"] != packet["input_basis"]["digest"], "file basis unchanged")
-        # The test knows the exact hypothetical prose change; a real agent must review it.
+        # The test knows the exact hypothetical evidence change; a real agent must review it.
         candidate = invoke(scratch, "knowledge", "propose", "--basis", fresh["input_basis"]["digest"],
                            "--change", str(request_path))
         for name, expected_hash in candidate["commit_basis"]["files"].items():

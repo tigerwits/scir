@@ -1,252 +1,109 @@
-# SCIR — Symbolic Content IR
+# SCIR
 
-**Markdown is the surface. SCIR is the volume.**
+**Symbolic content with explicit structure and small, deterministic tools.**
 
-SCIR is a symbolic content IR for agents and software. Maintain decisions,
-requirements, assumptions, and open questions as structured content. Query it,
-constrain it, and revise it directly. Use Markdown to explain the part needed
-by the current reader, rather than maintaining a new account of the project
-at every handoff.
-
-The kernel keeps composition explicit and vocabulary open. Project contracts
-can impose stronger rules without replacing the representation.
-
-## Choose a starting point
-
-| Task | Start here | Executable check |
-| --- | --- | --- |
-| Use the current profiles in another project | [Portable consumer skill](skills/scir/SKILL.md) | `python skills/scir/scripts/working_example.py` |
-| Migrate existing knowledge deliberately | [Migration skill](skills/scir-migrate/SKILL.md) | Follow the source-ownership and project-check rules |
-| Maintain SCIR itself | [Contributor workflow](AGENTS.md) and [self-use walkthrough](docs/self-hosting.md) | `python tools/check_self_host.py` |
-| Inspect selection and delivery costs | [Bounded workflow tools](docs/workflow-tools.md) | `python tools/study_delivery.py --output .build/delivery-study` |
-| Add trusted consumer rules | [Lifecycle example](examples/consumer-lifecycle/README.md) | `python examples/consumer-lifecycle/run.py` |
-
-Run examples with the approved installed package. The consumer example writes no
-files. The self-use walkthrough runs real repository commands and replays only in
-a disposable copy. CI also runs both from the source distribution outside the
-checkout; neither example installs a provider skill or changes accepted service state.
-
-## Write for humans; keep the working detail
-
-Markdown can be authored: a clear introduction, a design story, a short handoff.
-It need not be generated or reproduce every record. SCIR keeps the underlying
-assumptions, reasons, evidence, dependencies, and unresolved questions available
-for the next person, agent, or program.
-
-```scir
-record(A1, Assumption, deterministic(Handlers))
-record(P1, Proposal, unapproved(checkpointRecovery))
-dependsOn(P1, A1)
-```
-
-This snippet uses the custom dialect in the linked knowledge examples, not the
-standard `working/1` profile. Use the consumer example above for native supported
-record references and guarded updates; generic roots do not acquire those semantics.
-
-An overview can explain why checkpoint recovery is being considered. An agent can
-query what the proposal depends on. A dependency checker can identify it for
-review when the handler assumption changes. Those are different uses of the same
-working content, not a requirement to turn all prose into templates.
-
-[Three complete examples](examples/knowledge/README.md) pair architecture,
-incident investigation, and a mathematical argument with **authored human
-overviews**. The [migration skill](skills/scir-migrate/SKILL.md) teaches how to
-make this split without losing source commitments.
-
-This repository also uses optional [deterministic views](spec/README.md) for
-query rules that must be repeated exactly in its specification and API guide.
-`python spec/check.py` checks their freshness. Generation is a local choice,
-not the definition of using SCIR.
-
-## Explicit composition
-
-“Bob thinks Alice did not delete the file.”
-
-```scir
-think(Bob, not(delete(Alice, File)))
-```
-
-“Bob does not think Alice deleted the file.”
-
-```scir
-not(think(Bob, delete(Alice, File)))
-```
-
-These examples isolate negation scope, omitting tense. An author or model chooses
-the interpretation; SCIR preserves its structure for tools to inspect.
-
-## Kernel
-
-```text
-Term     = (symbol, ordered tuple of Terms)
-Document = ordered tuple of Terms
-```
-
-One content constructor. Root order and duplicates matter. Labels such as `think`
-and `not` have no built-in semantics. A dialect restricts accepted documents
-without changing the representation.
+SCIR stores ordered symbolic trees. Use it to keep requirements, assumptions,
+decisions, evidence and unresolved questions addressable without assigning them
+implicit truth, types or execution. Add a consumer-owned contract when a task
+needs stronger constraints. SCIR is not a theorem prover or a database.
 
 ## Start
 
-Requires Python 3.10+ with no third-party runtime dependencies. Install from
-source in a fresh directory.
+Python 3.10 or newer is required. From an approved checkout:
 
-**macOS / Linux**
-
-```bash
-git clone https://github.com/tigerwits/scir.git
-cd scir
-python3 -m venv .venv
-. .venv/bin/activate
+```sh
 python -m pip install .
 python -m scir --version
-python examples/knowledge/run.py
 ```
 
-**Windows PowerShell**
-
-```powershell
-git clone https://github.com/tigerwits/scir.git
-cd scir
-py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install .
-.\.venv\Scripts\python.exe -m scir --version
-.\.venv\Scripts\python.exe examples/knowledge/run.py
-```
-
-The Windows commands do not require changing PowerShell execution policy.
-The demo checks three knowledge artifacts and reports records that need review
-after an example change. It leaves source notes and human overviews unchanged.
-See the [worked cases](examples/knowledge/README.md) for expected results.
-Installing from source may download build dependencies.
-
-The distribution is `symbolic-content-ir`; the import and command are `scir`.
-The [v1.0.0 release](https://github.com/tigerwits/scir/releases/tag/v1.0.0) supplies
-the original baseline. Use the source checkout for the new 1.1 profiles described
-below; this change does not publish a new release artifact. The distribution is
-**not published to PyPI**. Do not install the unrelated distribution `scir`.
-
-**Using an agent?** Install the [portable SCIR skill](skills/scir/SKILL.md) with the
-[setup guide](docs/agents.md). It teaches drafting, queries, edits, and dialect
-checks in your project. The package supplies the tools; the skill supplies instructions.
-
-## Query and edit
+The distribution is `symbolic-content-ir`, not the unrelated package `scir`.
+The native format remains 1.0; additive profiles are opt-in.
 
 ```python
-from scir import parse, parse_document, parse_pattern, query, replace_at
+from scir import parse_document, parse_pattern, query
 
-content = parse_document("think(Bob, use(Alice, SalesData))")
-pattern = parse_pattern("use(Alice, ?data)")
-
-assert query(content, pattern) == []  # Roots only.
-hit = query(content, pattern, scope="all")[0]
-assert hit.path == (0, 1)
-assert str(hit.bindings["data"]) == "SalesData"
-
-changed = replace_at(content, hit.path, parse("use(Alice, Report)"))
-assert str(changed[0]) == "think(Bob, use(Alice, Report))"
+content = parse_document("knows(Alice, Bob)\nknows(Bob, Carol)")
+pattern = parse_pattern("knows(Alice, ?person)")
+hits = query(content, pattern)
+assert [hit.path for hit in hits] == [(0,)]
 ```
 
-`?data` is a pattern capture, not an unresolved entity. Finding `use(...)` inside
-a belief does not establish that it happened. Queries make no model calls.
+Roots retain order and duplicates. Nested statements do not become root facts.
+Matching is structural; a successful query does not establish the truth of a
+statement. Labels have no built-in domain meaning.
 
-## Constrain a dialect
+## This repository uses SCIR
 
-```python
-from scir import parse_document, parse_pattern
-from scir.constraints import check, forms, vocabulary
+[spec/index.scir](spec/index.scir) lists the canonical knowledge shards explicitly.
+Definitions, theory, API guides, workflows, research qualifications and skill
+sources are maintained in SCIR. Only this README and the thin
+[AGENTS.md](AGENTS.md) bootstrap are tracked Markdown.
 
-rules = (
-    forms(parse_pattern("email(?sender, ?recipient, ?thing)")),
-    vocabulary({"email", "Alice", "Bob", "Report"}),
-)
-assert check(parse_document("email(Alice, Bob, Report)"), rules) == ()
-issue, = check(parse_document("email(Alice, Bob, Reprot)"), rules)
-assert issue.path == (0, 2)
+```sh
+python spec/check.py
+python spec/check.py knowledge list
+python spec/check.py knowledge search --text 'Named roles'
+python spec/check.py knowledge select --id NamedRoles
+python spec/check.py knowledge affected --changed PreserveCallArity
 ```
 
-Both documents parse; only the first conforms. Rules are trusted application code,
-not code loaded from content. See [dialects](docs/dialects.md) for open identifiers,
-reference checks, composition, and failure handling. The [dialect chain](examples/dialect-chain/README.md)
-keeps a source fixed while adding vocabulary, record, and reference constraints.
-It also shows when a stricter contract must be blocked rather than filled by guessing.
+Selections include whole records and their declared context. A requirement links
+to its owning section, not a deleted Markdown heading. Origins retain historical
+commit and source hashes. Navigation links are distinct from dependency edges.
+Guarded proposals return source-owned write plans; they never persist or approve
+changes. The caller must enforce all commit preconditions atomically.
 
-## Named dialects
+| Topic | Canonical source |
+| --- | --- |
+| Native format | [spec/format.scir](spec/format.scir) and [native requirements](spec/native.scir) |
+| Profiles, dialects and theory | [spec/profiles.scir](spec/profiles.scir) |
+| API and adoption guides | [docs/guides.scir](docs/guides.scir) |
+| Ownership, contribution, release and verification | [spec/workflows.scir](spec/workflows.scir) |
+| Research, measured results and proof boundaries | [research knowledge](docs/research/knowledge.scir) |
+| Migration provenance | [migration ledger](docs/research/migration.scir) |
 
-Use [named contracts](docs/dialect-contracts.md) to compose trusted rules with
-explicit prerequisites and fixed external context. Results distinguish passed,
-rejected, blocked and incomplete checks and bind all declared input identities.
-The [profile helpers](docs/dialect-rules.md) check named fields and reference kinds
-without closing arbitrary IDs or literal text. These APIs do not load rule code
-from content and do not certify truth, authorization or translation fidelity.
+## Human-readable documentation and agent skills
 
-```bash
-python examples/consumer-lifecycle/dialect_run.py
-python tools/check_dialects.py
+Create a fresh disposable export outside the checkout:
+
+```sh
+python spec/check.py export --out /tmp/scir-docs
+python spec/check.py export --skill scir --out /tmp/scir-skill
+python spec/check.py export --skill scir-migrate --out /tmp/scir-migrate-skill
 ```
 
-The consumer uses fixed receipt test doubles. The repository example checks its
-real source contract on an isolated input copy. Both leave authoritative sources
-unchanged. The older low-level constraint API and custom dialect examples remain
-supported; the archived refinement prototype is not an installed runtime module.
+Exports refuse existing destinations. The complete documentation is readable as
+Markdown; portable skill bundles contain their `SKILL.md` adapters, references,
+scripts, canonical SCIR and license. Edit the SCIR source, not the export.
+Copy an **exported bundle**, not the raw skill-source folder, into the agent's
+skill directory. The Python package must be installed separately.
 
-## Optional notation and working knowledge
+The sources are [the consumer skill](skills/scir/knowledge.scir) and
+[the migration skill](skills/scir-migrate/knowledge.scir). A deterministic portable
+example is [working_example.py](skills/scir/scripts/working_example.py).
+For an actual repository handoff, run [check_self_host.py](tools/check_self_host.py).
+The [consumer lifecycle](examples/consumer-lifecycle/run.py) and
+[dialect chain](examples/dialect-chain/run.py) provide separate runnable examples;
+[example guidance](examples/guides.scir) explains their boundaries.
 
-Package 1.1 adds opt-in profiles without changing native format 1.0. In explicitly
-selected `notation/1`, tuples, named roles, text and references are available:
+## Verify and contribute
 
-```text
-record(A1, Assumption, idempotent(handler), status: unverified)
-record(T1, Task, send(doc, from: alice, to: bob), dependsOn: (&A1,))
-note(t"The assumption still needs evidence.")
+```sh
+python -m unittest discover -s tests -v
+python tools/check_self_host.py
 ```
 
-That fragment is generic structured notation, not a complete working/1 collection:
-the working profile requires record roots. `f(a,b)` still differs from `f((a,b))`.
-Aliases and ground abbreviations are optional; arithmetic is a fixed, explicitly
-selected spelling profile and does not evaluate expressions.
+Build and test the wheel and source distribution outside the checkout. Keep
+independent expected results, negative cases and frozen historical inputs.
+A declaration link is not test execution. A structural check is not a proof of
+translation fidelity, and finite tests are not a general proof. The Lean model
+has its own stated scope. No agent-performance advantage is claimed from this
+migration; independent model trials remain a separate research task.
 
-```bash
-python examples/working-profile/run.py
-python -m scir lower examples/working-profile/notes.scix
-python -m scir knowledge select examples/working-profile/notes.scir --collection example --id T1
-python -m scir knowledge affected examples/working-profile/notes.scir --collection example --changed A1
-```
+For sensitive security reports, do not post exploit details in public issues.
+Use GitHub's private vulnerability-reporting route when enabled; otherwise open
+a minimal issue requesting a private channel without disclosing sensitive detail.
+The full threat model and reporting policy are in `spec/workflows.scir`.
 
-The [runnable profile example](examples/working-profile/run.py) retains complete
-context and constructs a snapshot-guarded candidate without writing source files.
-Selection closes declared local references; review impact follows only dependsOn.
-Changes validate a whole candidate, not a database transaction or authorization.
-
-Read the [profile contract](docs/structured-profiles.md), [Python/CLI API](docs/profiles-api.md),
-and [adoption guidance](docs/profile-adoption.md) before enabling a profile. Existing
-native content is not silently reinterpreted or migrated. Exact text can remain text.
-
-## CLI
-
-```bash
-python -m scir check examples/query.scir
-python -m scir fmt --check examples/query.scir
-python -m scir query examples/query.scir --pattern 'use(Alice, ?data)' --scope all
-python -m scir encode examples/document.scir | python -m scir decode
-```
-
-Output goes to stdout, errors to stderr. Commands never rewrite input files.
-`fmt --check` returns 0 for canonical input, 1 for differences, and 2 for errors.
-Native `check` checks structure, not project constraints. The new explicit profile
-commands have separately documented validation and failure contracts.
-
-## Further reading
-
-[Worked examples](docs/examples.md) cover incident investigation, corrections,
-conditional requirements, and correlated ambiguity. The [API guide](docs/api.md)
-also covers annotations, alternatives, and relational transport.
-
-[Specification](SPEC.md) · [Theory](docs/theory.md) · [Agent setup](docs/agents.md) ·
-[Research](docs/research/README.md) · [Changelog](CHANGELOG.md) · [Contributing](AGENTS.md) ·
-[Releasing](docs/releasing.md) · [Security](SECURITY.md)
-
-Format **1.0**; implementation **1.1.0**.
-[Compatibility](SPEC.md#versioning-and-compatibility) covers the documented API
-and format. Structural correctness does not establish truth, translation fidelity,
-or improved agent performance. Licensed under [MIT](LICENSE).
+[MIT license](LICENSE). Repository-level tooling and documentation ship with the
+source distribution; the runtime wheel remains focused on the library.
