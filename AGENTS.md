@@ -73,18 +73,11 @@ Install the checkout or set `PYTHONPATH=src`, then run:
 ```bash
 python spec/check.py
 python -m unittest discover -s tests -v
-python tools/check_self_host.py
-python tools/check_dialects.py
-python examples/consumer-lifecycle/dialect_run.py
-python examples/consumer-lifecycle/run.py
-python tools/check_properties.py
-python tools/study_corpus.py
-python examples/dialects.py
-python examples/knowledge/run.py
-python examples/dialect-chain/run.py
 ```
 
-Tests execute documentation, shipped examples, and relocated skill references.
+The suite executes documentation, shipped examples, the named repository check,
+the disposable-copy handoff, and relocated skill references. Run individual
+examples when inspecting their reports; do not repeat them as mandatory gates.
 Build the wheel and sdist; test outside the checkout. For traversal changes, run
 `python tools/benchmark.py`. Preserve the golden conformance vectors; never update
 expected values merely to hide a regression.

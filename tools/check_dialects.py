@@ -11,8 +11,7 @@ import tempfile
 import scir
 from scir.changes import ConflictError
 from scir.constraints import Violation
-from scir.dialects import Context, Dialect, Rule, evaluate, from_constraint
-from scir.dialect_rules import structured, working
+from scir.dialects import Context, Dialect, Rule, evaluate
 from scir.profile import ProfileError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,10 +50,10 @@ def run():
             except ProfileError as error:
                 yield Violation(None, "repository-contract", str(error))
 
-        contract = Dialect("scir-repository", "1", (
-            from_constraint("structured", "1", identity, structured),
-            from_constraint("working", "1", identity, working, requires=("structured",)),
-            Rule("repository", "1", identity, local_contract, ("working",)),
+        # The repository contract owns profile, link and view checks. Do not
+        # repeat its structural/index validation in preliminary adapter stages.
+        contract = Dialect("scir-repository", "2", (
+            Rule("repository", "2", identity, local_contract),
         ))
         result = evaluate(index.document, contract, context, collection=index.collection)
         if not result.conforms:

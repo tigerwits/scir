@@ -98,10 +98,17 @@ and source-owned plans. Those interfaces do not supply the missing host authorit
 
 ## Named dialect and result handoff
 
-Run `python examples/consumer-lifecycle/dialect_run.py` to use the additive named
-contract API. The adapter composes structured, working, field, reference-kind and
-existing consumer-policy checks. `FIELDS` in `policy.py` remains the one owner
-of allowed kinds and fields. No second policy vocabulary is introduced.
+The primary `run.py` workflow uses named contract `consumer-lifecycle/2`.
+The `structured` stage gates one consumer stage. That stage builds one immutable
+working Index, then applies the existing `policy.check` function. Its field,
+reference-kind and conditional rules have one owner; they are not repeated in
+separate stages. Invalid working data cannot reach the consumer policy.
+
+The old `dialect_run.py` entry point is a thin compatibility view of the same run,
+not a second workflow to maintain or execute. Its result identifies version 2.
+General helper composition remains covered by the public API examples and tests.
+The scheduling/diagnostic layout is an explicit example-contract revision, not
+a change to the generic dialect engine.
 
 The host converts its fixed `TrustedInputs` into a separate immutable Context.
 Its revision and exact contents are bound to each result. The example rejects an

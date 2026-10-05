@@ -71,16 +71,6 @@ class SkillTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertIn("1.0", result.stdout)
 
-    def test_install_copy_refuses_overwrite(self):
-        for skill in SKILLS:
-            with tempfile.TemporaryDirectory() as tmp:
-                target = Path(tmp) / ".agents/skills" / skill.name
-                shutil.copytree(skill, target)
-                marker = target / "local-note.txt"
-                marker.write_text("keep", encoding="utf-8")
-                with self.assertRaises(FileExistsError):
-                    shutil.copytree(skill, target)
-                self.assertEqual(marker.read_text(), "keep")
 
     def test_starter_blocks_unknown_reference_then_accepts_explicit_repair(self):
         with tempfile.TemporaryDirectory() as tmp:

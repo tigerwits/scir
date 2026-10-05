@@ -10,7 +10,8 @@ from scir import Term
 from scir.changes import ConflictError, propose
 from scir.constraints import Violation
 from scir.dialects import Context, Dialect, Rule, compose, evaluate, from_constraint
-from scir.dialect_rules import FieldSet, record_fields, reference_targets, structured, working
+from scir.dialect_rules import structured
+from scir.profile import ProfileError
 from scir.knowledge import build_index
 
 import policy
@@ -57,26 +58,27 @@ def implementation_identity() -> str:
 
 def contract() -> Dialect:
     identity = implementation_identity()
-    base = Dialect("working-profile", "1", (
+    base = Dialect("structured-profile", "1", (
         from_constraint("structured", "1", identity, structured),
-        from_constraint("working", "1", identity, working, requires=("structured",)),
     ))
-    schema = {kind: FieldSet(optional=fields) for kind, fields in policy.FIELDS.items()}
 
     def domain(document, context):
-        trusted = _trusted(context)  # Host input errors must be incomplete, not policy rejection.
+        # Build one immutable working view. Invalid content cannot reach policy.
         try:
-            policy.check(build_index(document, collection="consumer-check"), trusted)
-        except policy.PolicyError as error:
+            index = build_index(document, collection="consumer-check")
+        except ProfileError as error:
+            yield Violation(None, "working", str(error))
+            return
+        trusted = _trusted(context)  # Malformed external input is incomplete.
+        try:
+            policy.check(index, trusted)
+        except ProfileError as error:
             yield Violation(None, "consumer-policy", str(error))
 
-    return compose("consumer-lifecycle", "1", base, rules=(
-        from_constraint("fields", "1", identity, record_fields(schema), requires=("working",)),
-        from_constraint("decision-targets", "1", identity,
-                        reference_targets("decision", {"Decision"}, source_kinds={"Task"}), requires=("working",)),
-        from_constraint("evidence-targets", "1", identity,
-                        reference_targets("evidence", {"Evidence"}, source_kinds={"Task"}), requires=("working",)),
-        Rule("policy", "1", identity, domain, ("fields", "decision-targets", "evidence-targets")),
+    # Policy already owns field and target restrictions. Repeating those checks
+    # as separate adapters rebuilt the same index without adding acceptance rules.
+    return compose("consumer-lifecycle", "2", base, rules=(
+        Rule("consumer", "2", identity, domain, ("structured",)),
     ))
 
 
