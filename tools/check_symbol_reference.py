@@ -133,7 +133,8 @@ def boundary_cases():
 
 
 def audit_axioms(source, output, *, namespace="SCIR.Symbols",
-                 kernels=("relabel", "relabelDocument", "documentOccurrences")):
+                 kernels=("relabel", "relabelDocument", "documentOccurrences"),
+                 allow_kernel_only=False):
     """Lean reports transitive assumptions; source scans alone are insufficient."""
     declarations = set(re.findall(r"^theorem ([A-Za-z_][A-Za-z_0-9]*)\b", source, re.M))
     prefix = re.escape(namespace)
@@ -141,7 +142,7 @@ def audit_axioms(source, output, *, namespace="SCIR.Symbols",
     reports.update({name: "" for name in re.findall(
         rf"'{prefix}\.(\w+)' does not depend on any axioms", output)})
     expected = declarations | set(kernels)
-    if not declarations or set(reports) != expected:
+    if (not declarations and not allow_kernel_only) or not expected or set(reports) != expected:
         raise ValueError("every exported theorem and executed kernel needs an assumption report")
     for name, values in reports.items():
         axioms = {item.strip() for item in values.split(",") if item.strip()}

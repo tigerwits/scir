@@ -236,7 +236,7 @@ Document shape, not truth, source fidelity, or a complete resource audit.
 
 ## Versioning and compatibility
 
-The package version is `1.3.0`; the format identifier is `1.0`.
+The package version is `1.4.0`; the format identifier is `1.0`.
 
 Within format 1.0, the content grammar, canonical UTF-8 representation, digest
 domain, and relational envelope have the behavior specified here. Equivalent

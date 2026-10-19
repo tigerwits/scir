@@ -246,7 +246,7 @@ also covers annotations, alternatives, and relational transport.
 [Research](docs/research/README.md) · [Changelog](CHANGELOG.md) · [Contributing](AGENTS.md) ·
 [Releasing](docs/releasing.md) · [Security](SECURITY.md)
 
-Format **1.0**; implementation **1.3.0**.
+Format **1.0**; implementation **1.4.0**.
 [Compatibility](SPEC.md#versioning-and-compatibility) covers the documented API
 and format. Structural correctness does not establish truth, translation fidelity,
 or improved agent performance. Licensed under [MIT](LICENSE).
