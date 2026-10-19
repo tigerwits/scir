@@ -1,6 +1,7 @@
 """One-way matching and simultaneous substitution; data cannot contain holes."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from .core import IDENT, Symbol, Term, _symbol_value, format_symbol
 
@@ -39,6 +40,47 @@ class Node:
 
 Pattern = Node | Var
 Bindings = dict[str, Term]
+
+
+def substitute(pattern: Pattern, substitutions: Mapping[str, Pattern]) -> Pattern:
+    """Substitute named variables once; missing names remain open variables.
+
+    Wildcards discard values during matching and are excluded from this algebra.
+    Reject them in the input and every replacement, including unused entries.
+    Node heads are exact symbols, never variable or macro references.
+    """
+    if not isinstance(substitutions, Mapping):
+        raise ValueError("substitutions must map variable names to patterns")
+    replacements = dict(substitutions)
+    for name in replacements:
+        if Var(name).name == "_":
+            raise ValueError("wildcards are not substitutable variables")
+    pending = [pattern, *replacements.values()]
+    while pending:
+        current = pending.pop()
+        if type(current) is Var:
+            if current.name == "_":
+                raise ValueError("open substitution excludes wildcards")
+        elif type(current) is Node:
+            pending.extend(current.args)
+        else:
+            raise ValueError("open substitutions require Node or Var values")
+    pending = [(pattern, False)]
+    built = []
+    while pending:
+        current, ready = pending.pop()
+        if type(current) is Var:
+            built.append(replacements.get(current.name, current))
+        elif not ready:
+            pending.append((current, True))
+            pending.extend((child, False) for child in reversed(current.args))
+        else:
+            count = len(current.args)
+            children = tuple(built[-count:]) if count else ()
+            if count:
+                del built[-count:]
+            built.append(Node(current.symbol, children))
+    return built[0]
 
 
 def match(pattern: Pattern, subject: Term) -> Bindings | None:

@@ -132,13 +132,15 @@ def boundary_cases():
     ]
 
 
-def audit_axioms(source, output):
+def audit_axioms(source, output, *, namespace="SCIR.Symbols",
+                 kernels=("relabel", "relabelDocument", "documentOccurrences")):
     """Lean reports transitive assumptions; source scans alone are insufficient."""
     declarations = set(re.findall(r"^theorem ([A-Za-z_][A-Za-z_0-9]*)\b", source, re.M))
-    reports = dict(re.findall(r"'SCIR.Symbols.(\w+)' depends on axioms:\s*\[(.*?)\]", output, re.S))
+    prefix = re.escape(namespace)
+    reports = dict(re.findall(rf"'{prefix}\.(\w+)' depends on axioms:\s*\[(.*?)\]", output, re.S))
     reports.update({name: "" for name in re.findall(
-        r"'SCIR.Symbols.(\w+)' does not depend on any axioms", output)})
-    expected = declarations | {"relabel", "relabelDocument", "documentOccurrences"}
+        rf"'{prefix}\.(\w+)' does not depend on any axioms", output)})
+    expected = declarations | set(kernels)
     if not declarations or set(reports) != expected:
         raise ValueError("every exported theorem and executed kernel needs an assumption report")
     for name, values in reports.items():
@@ -161,12 +163,13 @@ def main():
     (build / "report.json").unlink(missing_ok=True)
     model = ROOT / "proofs/SymbolLaws.lean"
     driver = ROOT / "proofs/SymbolReference.lean"
-    paths = [model, driver, Path(__file__).resolve(), *sorted((ROOT / "src/scir").glob("*.py"))]
+    codec = ROOT / "proofs/ReferenceCodec.lean"
+    paths = [model, driver, codec, Path(__file__).resolve(), *sorted((ROOT / "src/scir").glob("*.py"))]
     def hashes():
         return {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
     before = hashes()
     source = model.read_text(encoding="utf-8")
-    for path in (model, driver):
+    for path in (model, driver, codec):
         code = re.sub(r"/-.*?-/|--[^\n]*", "", path.read_text(encoding="utf-8"), flags=re.S)
         if re.search(r"\b(sorry|admit|axiom|unsafe|partial|implemented_by)\b", code):
             raise ValueError("reference contains an admission or replacement executable")
@@ -176,6 +179,8 @@ def main():
     (build / "axioms.txt").write_text(compile_result.stdout, encoding="utf-8")
     assumptions = audit_axioms(source, compile_result.stdout)
     env = {**os.environ, "LEAN_PATH": str(build)}
+    subprocess.run([lean, "-DwarningAsError=true", "-o", str(build / "ReferenceCodec.olean"), str(codec)],
+                   cwd=ROOT, env=env, capture_output=True, text=True, check=True, timeout=60)
     subprocess.run([lean, "-DwarningAsError=true", str(driver)], cwd=ROOT,
                    env=env, capture_output=True, text=True, check=True, timeout=60)
     cases, boundary = corpus(), boundary_cases()
