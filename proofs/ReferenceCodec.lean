@@ -1,8 +1,11 @@
 import Lean
 import SymbolLaws
+import StrictJson
 
 /- Test-only bounded codec for canonical scir-relations/1.0 forests.
-   This boundary is empirically checked; it is outside the model proofs. -/
+   This boundary is empirically checked; it is outside the model proofs.
+   NativeCodec.decodeRelations specifies general format-1.0 transport admission;
+   this narrower adapter intentionally requires canonical reference inputs. -/
 open Lean SCIR.Symbols
 
 namespace SCIR.ReferenceCodec
@@ -14,6 +17,10 @@ inductive BoundaryError where
 abbrev Checked := Except BoundaryError
 
 def checked (value : Except String α) : Checked α := value.mapError .rejected
+
+def readJson (source : String) : Checked Json :=
+  (StrictJson.parse source).mapError fun error =>
+    if error.startsWith "incomplete:" then .incomplete error else .rejected error
 
 def required (message : String) (value : Option α) : Checked α :=
   match value with

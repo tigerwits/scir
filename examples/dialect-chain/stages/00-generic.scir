@@ -1,4 +1,0 @@
-must(Parser, when(parseFails, return(Error)))
-must(Parser, when(parseFails, leaveUnchanged(State)))
-mustNot(Parser, evaluate(Payload))
-unspecified(timeoutPolicy(Parser))

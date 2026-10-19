@@ -1,6 +1,6 @@
 import ReferenceCodec
 
-/- Test-only JSONL boundary. Production has no Lean dependency. The forest
+/- Executable specification JSONL boundary. The forest
    transport is the existing scir-relations/1.0 canonical occurrence table.
    This codec and its resource checks are tested, not covered by SymbolLaws. -/
 open Lean SCIR.Symbols SCIR.ReferenceCodec
@@ -29,14 +29,14 @@ def evaluate (request : Json) : Checked Json := do
     ("occurrences", arr occurrences)]
 
 def response (source : String) : Json :=
-  match checked (Json.parse source) >>= evaluate with
+  match readJson source >>= evaluate with
   | .ok value => value
   | .error (.rejected message) => Json.mkObj [("status", toJson "rejected"), ("message", toJson message)]
   | .error (.incomplete message) => Json.mkObj [("status", toJson "incomplete"), ("message", toJson message)]
 
 end SCIR.SymbolReference
 
-def main : IO Unit := do
+def SCIR.SymbolReference.main : IO Unit := do
   let input ← IO.getStdin
   let output ← IO.getStdout
   repeat

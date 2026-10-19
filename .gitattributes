@@ -1,5 +1,7 @@
 *.scir text eol=lf
-SPEC.md text eol=lf
-docs/api.md text eol=lf
-examples/knowledge/**/source.md text eol=lf
-examples/dialect-chain/source.md text eol=lf
+*.lean text eol=lf
+*.jsonl text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+lean-toolchain text eol=lf

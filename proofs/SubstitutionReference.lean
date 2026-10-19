@@ -76,14 +76,14 @@ def evaluate (request : Json) : Checked Json := do
   | _ => throw (.rejected "unsupported reference operation")
 
 def response (source : String) : Json :=
-  match checked (Json.parse source) >>= evaluate with
+  match readJson source >>= evaluate with
   | .ok value => value
   | .error (.rejected message) => Json.mkObj [("status", toJson "rejected"), ("message", toJson message)]
   | .error (.incomplete message) => Json.mkObj [("status", toJson "incomplete"), ("message", toJson message)]
 
 end SCIR.SubstitutionReference
 
-def main : IO Unit := do
+def SCIR.SubstitutionReference.main : IO Unit := do
   let input ← IO.getStdin
   let output ← IO.getStdout
   repeat
