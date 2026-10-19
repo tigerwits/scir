@@ -1,0 +1,2 @@
+record(Color, Definition, red)
+record(Pair, Definition, pair("scir.ref"(Color), "scir.ref"(Color)))

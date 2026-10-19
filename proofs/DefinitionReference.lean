@@ -1,8 +1,8 @@
 import ReferenceCodec
 import DefinitionLaws
 
-/- Test-only profile adapter. Definition expansion uses repeated simultaneous
-   substitutions, independently of the runtime's iterative reference traversal.
+/- Executable profile specification. Definition expansion uses repeated simultaneous
+   substitutions, independently of the retired realization's reference traversal.
    Existing canonical native relations carry every input and result. -/
 open Lean SCIR.Symbols SCIR.Substitution SCIR.Definitions SCIR.ReferenceCodec
 
@@ -187,14 +187,14 @@ def evaluate (request : Json) : Checked Json := do
   | _ => throw (.rejected "unsupported reference operation")
 
 def response (source : String) : Json :=
-  match checked (Json.parse source) >>= evaluate with
+  match readJson source >>= evaluate with
   | .ok value => value
   | .error (.rejected message) => Json.mkObj [("status", toJson "rejected"), ("message", toJson message)]
   | .error (.incomplete message) => Json.mkObj [("status", toJson "incomplete"), ("message", toJson message)]
 
 end SCIR.DefinitionReference
 
-def main : IO Unit := do
+def SCIR.DefinitionReference.main : IO Unit := do
   let input ← IO.getStdin
   let output ← IO.getStdout
   repeat

@@ -1,3 +1,0 @@
-hypothesis(H1, causes(stale(Cache), wrong(Report)))
-observation(O1, stale(Cache))
-supports(O1, H7)

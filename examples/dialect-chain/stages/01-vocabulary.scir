@@ -1,4 +1,0 @@
-requires(Parser, on(failure(Parse), return(Error)))
-requires(Parser, on(failure(Parse), unchanged(State)))
-forbids(Parser, evaluate(Payload))
-unspecified(timeoutPolicy(Parser))

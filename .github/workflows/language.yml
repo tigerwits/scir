@@ -1,0 +1,39 @@
+name: Language specification
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: language-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: Check pinned Lean specification and independent conformance
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://github.com/leanprover/lean4/releases/download/v4.19.0/lean-4.19.0-linux.tar.zst --output "$RUNNER_TEMP/lean.tar.zst"
+          printf '%s  %s\n' '6fe3ce97a58f44e2b3567d455b994eacec5bfe9ae7774f2a573444480ba813fe' "$RUNNER_TEMP/lean.tar.zst" | sha256sum --check --strict
+          tar --zstd --no-same-owner -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          bash scripts/check.sh "$RUNNER_TEMP/lean-4.19.0-linux/bin/lean"
+          git diff --exit-code
+          git rev-parse HEAD > .build/language/source-revision.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: language-conformance-evidence
+          path: |
+            .build/language/*.log
+            .build/mutants/*/compile.log
+            .build/mutants/*/run.log
+            .build/native-corpus.scir
+            .build/definition-corpus.scir
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90

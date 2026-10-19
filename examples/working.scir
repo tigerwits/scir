@@ -1,0 +1,4 @@
+record(Source1, Evidence, "scir.text"("Synthetic note: setting is on."))
+record(Source2, Evidence, "scir.text"("Synthetic note: setting is off."))
+record(OnClaim, Claim, setting(on), "scir.kw"(evidence("scir.tuple"("scir.ref"(Source1))), status(proposed)))
+record(OffClaim, Claim, setting(off), "scir.kw"(evidence("scir.tuple"("scir.ref"(Source2))), status(proposed)))
