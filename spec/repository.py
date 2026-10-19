@@ -10,7 +10,7 @@ import sys
 from scir import Document, Term, format_document
 from scir.knowledge import Index, build_index
 from scir._profile_native import native, failure
-from scir.profile import LimitError, ProfileError, read_fields, read_tuple
+from scir.profile import LimitError, ProfileError, read_fields, read_text, read_tuple, reference
 
 if __package__:
     from .locations import declarations, local_file, read_source
@@ -29,7 +29,7 @@ AREAS = frozenset(("Core", "Syntax", "Patterns", "Tree", "Annotations", "Transpo
                    "Constraints", "CLI", "Structured", "Notation", "Working", "Changes",
                    "Workflow", "Evidence"))
 FIELDS = frozenset(("ownership", "source", "area", "tests", "models", "status",
-                    "dependsOn", "scope", "evidence", "reason", "supersedes", "projection")) | QUERY_FIELDS
+                    "dependsOn", "scope", "evidence", "reason", "supersedes", "projection", "contract")) | QUERY_FIELDS
 
 
 def _leaf(term: Term, role: str) -> str:
@@ -78,7 +78,16 @@ def validate(document: Document, root: Path = ROOT) -> Index:
             raise ProfileError("ownership must be index or record")
         if _leaf(fields["area"], "area") not in AREAS:
             raise ProfileError("unknown repository area")
-        location(fields["source"], "section")
+        if fields["source"] == reference(record.id):
+            if (fields["ownership"] != Term("record") or "contract" not in fields
+                    or not read_text(fields["contract"])):
+                raise ProfileError("a self-owned SCIR source needs exact contract text")
+            if QUERY_FIELDS & fields.keys() or "projection" in fields:
+                raise ProfileError("self-owned contracts do not define native query views")
+        else:
+            if "contract" in fields:
+                raise ProfileError("contract text needs its own SCIR source identity")
+            location(fields["source"], "section")
         if record.kind == "Requirement" and "tests" not in fields:
             raise ProfileError("requirement needs independent test links")
         for field, kind in (("tests", "test"), ("models", "model")):

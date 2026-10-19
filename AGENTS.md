@@ -18,8 +18,10 @@ review dependencies. These commands do not infer truth or certify test adequacy.
 The old catalog is an explicit `python spec/check.py --legacy` compatibility export.
 It is not a maintained source or an intermediate validation format.
 The six query/occurrence records in `spec/native.scir` own exact wording and
-examples; their marked SPEC/API paragraphs are generated. Other normative rules
-remain document-owned and their records are indexes. Edit the designated owner,
+examples; their marked SPEC/API paragraphs are generated. Other existing normative
+rules remain document-owned and their records are indexes. The `SelfOwnedContracts`
+record in `spec/knowledge.scir` owns the scoped route for new SCIR-owned contracts.
+Edit the designated owner,
 then run `python spec/check.py --write-views` and review the diff. Never treat an
 independent prose revision or automatic rendering as a new source fact.
 

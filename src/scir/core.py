@@ -25,14 +25,39 @@ def format_symbol(symbol: str) -> str:
 
 
 @dataclass(frozen=True, slots=True)
+class Symbol:
+    """An exact native label value, independent of occurrences and referents."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        check_symbol(self.value)
+
+    def __str__(self) -> str:
+        return format_symbol(self.value)
+
+
+def _symbol_value(symbol: str | Symbol) -> str:
+    value = symbol.value if type(symbol) is Symbol else symbol
+    check_symbol(value)
+    return value
+
+
+@dataclass(frozen=True, slots=True, init=False)
 class Term:
     symbol: str
     args: tuple[Term, ...] = ()
 
-    def __post_init__(self) -> None:
-        check_symbol(self.symbol)
-        if type(self.args) is not tuple or any(type(a) is not Term for a in self.args):
+    def __init__(self, symbol: str | Symbol, args: tuple[Term, ...] = ()) -> None:
+        # Keep the documented string field and canonical bytes compatible.
+        object.__setattr__(self, "symbol", _symbol_value(symbol))
+        if type(args) is not tuple or any(type(a) is not Term for a in args):
             raise ValueError("arguments must be a tuple of ground Terms")
+        object.__setattr__(self, "args", args)
+
+    @property
+    def head(self) -> Symbol:
+        return Symbol(self.symbol)
 
     def __str__(self) -> str:
         head = format_symbol(self.symbol)

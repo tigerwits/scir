@@ -1,12 +1,14 @@
 """Symbolic content trees and deterministic structural operations."""
-from .core import FORMAT_VERSION, Document, Term, digest, format_document, validate
+from .core import FORMAT_VERSION, Document, Symbol, Term, digest, format_document, validate
 from .patterns import match
 from .syntax import ParseError, parse, parse_document, parse_pattern
 from .tree import diff, query, replace_at
+from .symbols import relabel_symbols, symbol_occurrences
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __all__ = [
-    "Term", "Document", "ParseError", "FORMAT_VERSION",
+    "Symbol", "Term", "Document", "ParseError", "FORMAT_VERSION",
     "parse", "parse_document", "format_document", "parse_pattern",
     "match", "query", "validate", "digest", "diff", "replace_at",
+    "relabel_symbols", "symbol_occurrences",
 ]

@@ -44,6 +44,31 @@ def request(index, operations):
 
 
 class RepositoryHandoffTests(unittest.TestCase):
+    def test_self_owned_contract_creation_binds_source_bytes_and_requires_placement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            index = fixture(root)
+            basis = handoff.capture(root, index, repository.SOURCES)
+            created = p.application("record", (Term("S"), Term("Requirement"), Term("preserve")), fields=(
+                ("area", Term("Core")), ("ownership", Term("record")), ("source", p.reference("S")),
+                ("contract", p.text("The SCIR source owns this contract.")),
+                ("tests", p.tuple_value((Term("test", (Term("tests/test_sample.py"), Term("Sample.test_case"))),)))))
+            source = request(index, [{"op": "createRecord", "record": str(created)}])
+            with self.assertRaises(p.ProfileError):
+                repository.propose_handoff(index, source, basis.fingerprint, root)
+            result = repository.propose_handoff(index, source, basis.fingerprint, root,
+                                               placements={"S": "spec/knowledge.scir"})
+            self.assertEqual([item["path"] for item in result["write_plan"]], ["spec/knowledge.scir"])
+            for item in result["write_plan"]:
+                (root / item["path"]).write_bytes(item["content"].encode())
+            current = repository.load(root)
+            self.assertEqual(current.records["S"].term, created)
+            current_basis = handoff.capture(root, current, repository.SOURCES)
+            self.assertEqual(dict(current_basis.membership)["S"], "spec/knowledge.scir")
+            self.assertNotEqual(current_basis.fingerprint, basis.fingerprint)
+            with self.assertRaises(ConflictError):
+                repository.propose_handoff(current, request(current, []), basis.fingerprint, root)
+
     def test_authoritative_body_and_test_changes_invalidate_same_content_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
