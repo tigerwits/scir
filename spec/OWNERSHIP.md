@@ -10,7 +10,7 @@ canonical collection with globally unique IDs. They are not language imports.
 | --- | --- | --- |
 | Native query/occurrence wording | Six record-owned entries in `native.scir` | Two marked Markdown views |
 | Other native rules | Linked specification sections | Working records index obligations and tests |
-| New rules, decisions and limitations | Linked contract/result sections | Records index rationale and checks |
+| New rules, decisions and limitations | Linked sections or the self-owned contract route below | Records retain declared rationale and checks |
 | Test expectations | Independent test methods | Coverage links are declarations, not execution |
 | Proof models | Lean source and stated scope | A declaration link does not establish elaboration |
 | Measurements | Identified runs and artifacts | Reported success is not approval or truth |
@@ -22,14 +22,16 @@ fixtures; their byte witness does not freeze current requirements.
 
 ## Record contract
 
-Each record has an ID, kind, area, source section and ownership. Kinds are
+Each record has an ID, kind, area, source and ownership. Kinds are
 Requirement, Decision, Limitation and Question. Requirements need a nonempty
 `tests` tuple. Decisions and questions need an authored status. Optional `models`
 links Lean declarations. Unknown local fields/kinds fail. All explicit references
 resolve within the combined collection, including across shards.
 
 `ownership: index` identifies a summary of a document-owned definition.
-`ownership: record` is limited to query requirements. Their exact `wording` and
+The `SelfOwnedContracts` record in [knowledge.scir](knowledge.scir) owns the
+self-source contract extension. Existing query requirements use `ownership: record`.
+Their exact `wording` and
 optional `apiNote` are text. `topic: Queries` and contiguous unique `viewOrder`
 labels define the two views. `queryExamples` contains uniquely named
 `example(name, input(...), pattern, scope, paths(...))` values. The checker runs

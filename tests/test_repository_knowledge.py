@@ -36,7 +36,7 @@ def record(identifier="R", kind="Requirement", **extra):
 class RepositoryKnowledgeTests(unittest.TestCase):
     def test_authored_catalog_and_legacy_projection_share_preserved_ids(self):
         index = load(ROOT)
-        self.assertEqual(len(index.records), 60)
+        self.assertEqual(len(index.records), 64)
         self.assertTrue({"SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"} <= set(index.records))
         for identifier in ("SelectionDiagnostics", "DeliveryViews", "ConsumerLifecycleExample"):
             self.assertIn("NoAgentTrials", select(index, (identifier,)).selected_ids)
@@ -54,6 +54,30 @@ class RepositoryKnowledgeTests(unittest.TestCase):
             item = record(models=tuple_value((Term("model", (Term("proofs/Laws.lean"), Term("rule"))),)))
             self.assertEqual(tuple(validate((item,), root).records), ("R",))
             self.assertEqual(declarations(root, "proofs/Laws.lean", "model"), ["rule"])
+
+    def test_self_owned_contracts_have_exact_local_identity_and_checked_links(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixture(root)
+            owned = record(ownership=Term("record"), source=reference("R"),
+                           contract=text("The SCIR record owns this exact contract."))
+            index = validate((owned,), root)
+            self.assertEqual(select(index, ("R",)).selected_ids, ("R",))
+            self.assertEqual(dict(index.records["R"].fields)["contract"],
+                             text("The SCIR record owns this exact contract."))
+            bad = (record(ownership=Term("record"), source=reference("R")),
+                   record(ownership=Term("index"), source=reference("R"), contract=text("body")),
+                   record(ownership=Term("record"), source=reference("R"), contract=text("")),
+                   record(ownership=Term("record"), source=reference("R"), contract=Term("body")),
+                   record(contract=text("duplicate source")),
+                   record(ownership=Term("record"), source=reference("Missing"), contract=text("body")),
+                   record(ownership=Term("record"), source=reference("R"), contract=text("body"),
+                          projection=Term("native")),
+                   record(ownership=Term("record"), source=reference("R"), contract=text("body"),
+                          tests=tuple_value((Term("test", (Term("tests/test_rule.py"), Term("Missing"))),))))
+            for item in bad:
+                with self.subTest(item=str(item)), self.assertRaises(ValueError):
+                    validate((item,), root)
 
     def test_unknown_fields_kinds_ownership_and_missing_test_fail(self):
         with tempfile.TemporaryDirectory() as tmp:

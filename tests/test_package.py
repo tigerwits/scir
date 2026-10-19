@@ -13,9 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 class PackageTests(unittest.TestCase):
     def test_public_api_is_deliberate(self):
         expected = {
-            "Term", "Document", "ParseError", "FORMAT_VERSION", "parse",
+            "Symbol", "Term", "Document", "ParseError", "FORMAT_VERSION", "parse",
             "parse_document", "format_document", "parse_pattern", "match",
             "query", "validate", "digest", "diff", "replace_at",
+            "symbol_occurrences", "relabel_symbols",
         }
         self.assertEqual(set(scir.__all__), expected)
         self.assertTrue(all(hasattr(scir, name) for name in expected))
@@ -29,7 +30,7 @@ class PackageTests(unittest.TestCase):
                   and any(isinstance(t, ast.Name) and t.id == "__version__" for t in node.targets)]
         self.assertEqual(values, [scir.__version__])
         # Package additions do not change the native content/transport version.
-        self.assertEqual(scir.__version__, "1.1.0")
+        self.assertEqual(scir.__version__, "1.2.0")
         self.assertEqual(FORMAT_VERSION, "1.0")
         self.assertEqual(VERSION, f"scir-relations/{FORMAT_VERSION}")
         metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

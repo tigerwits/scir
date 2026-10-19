@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from .core import IDENT, Term, check_symbol, format_symbol
+from .core import IDENT, Symbol, Term, _symbol_value, format_symbol
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,7 +17,7 @@ class Var:
         return "?" + self.name
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class Node:
     symbol: str
     args: tuple[Pattern, ...] = ()
@@ -26,10 +26,15 @@ class Node:
         head = format_symbol(self.symbol)
         return head if not self.args else head + "(" + ", ".join(map(str, self.args)) + ")"
 
-    def __post_init__(self) -> None:
-        check_symbol(self.symbol)
-        if type(self.args) is not tuple or any(type(a) not in (Node, Var) for a in self.args):
+    def __init__(self, symbol: str | Symbol, args: tuple[Pattern, ...] = ()) -> None:
+        object.__setattr__(self, "symbol", _symbol_value(symbol))
+        if type(args) is not tuple or any(type(a) not in (Node, Var) for a in args):
             raise ValueError("pattern arguments must be Nodes or Vars")
+        object.__setattr__(self, "args", args)
+
+    @property
+    def head(self) -> Symbol:
+        return Symbol(self.symbol)
 
 
 Pattern = Node | Var

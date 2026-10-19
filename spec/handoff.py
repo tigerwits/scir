@@ -9,7 +9,7 @@ from pathlib import Path
 from scir import digest, format_document
 from scir._profile_native import native
 from scir.changes import ConflictError
-from scir.profile import LimitError, ProfileError, read_tuple, read_fields
+from scir.profile import LimitError, ProfileError, read_tuple, read_fields, reference
 
 if __package__:
     from .locations import MAX_SOURCE_BYTES, local_file, read_source
@@ -36,7 +36,8 @@ def linked_paths(index) -> set[str]:
     for record in index.records.values():
         fields = dict(record.fields)
         source = fields.get("source")
-        links = [(source, "section")]
+        # Self-owned contract bytes are already bound through source membership.
+        links = [] if source == reference(record.id) else [(source, "section")]
         for key, kind in (("tests", "test"), ("models", "model")):
             if key in fields:
                 if read_fields(fields[key]):

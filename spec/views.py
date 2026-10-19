@@ -5,7 +5,7 @@ from html import escape
 import re
 
 from scir import Term, format_document, parse_pattern, query
-from scir.profile import ProfileError, read_fields, read_text, read_tuple
+from scir.profile import ProfileError, read_fields, read_text, read_tuple, reference
 
 if __package__:
     from .locations import local_file
@@ -46,7 +46,8 @@ def query_records(index):
             raise ProfileError("only requirements use projection: native")
         has_query = bool(QUERY_FIELDS & fields.keys())
         if not has_query:
-            if fields.get("ownership") == Term("record"):
+            if fields.get("ownership") == Term("record") and not (
+                    "contract" in fields and fields.get("source") == reference(record.id)):
                 raise ProfileError("a record owner needs query content")
             continue
         if (projected is None or not {"topic", "viewOrder", "wording"} <= fields.keys()
