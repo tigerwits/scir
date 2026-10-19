@@ -52,10 +52,18 @@ jobs:
           tar --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
           python tools/check_lean_model.py "$RUNNER_TEMP/lean-4.19.0-linux/bin/lean"
           python tools/check_symbol_reference.py "$RUNNER_TEMP/lean-4.19.0-linux/bin/lean"
+          python tools/check_substitution_reference.py "$RUNNER_TEMP/lean-4.19.0-linux/bin/lean"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: symbol-reference-evidence
           path: .build/symbol-reference/
+          include-hidden-files: true
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: substitution-reference-evidence
+          path: .build/substitution-reference/
           include-hidden-files: true
           retention-days: 90
           if-no-files-found: error
