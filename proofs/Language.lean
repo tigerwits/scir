@@ -3,6 +3,7 @@ import SymbolLaws
 import SubstitutionLaws
 import DefinitionLaws
 import ProfileLaws
+import OccurrenceLaws
 
 /- SCIR LANGUAGE SPECIFICATION, native format 1.0
 
@@ -16,7 +17,7 @@ import ProfileLaws
    Authority and verification
 
    The clauses in this file own the native and opt-in profile contracts. Pure
-   declarations and the four retained law modules formalize the specified parts.
+   declarations and law modules formalize the specified parts.
    NativeCodec, StrictJson, Sha256, WorkingSpec and the three Reference modules
    are bounded executable specifications, used for conformance. Their success
    does not establish parser correctness, cryptographic security, source fidelity,
@@ -126,6 +127,12 @@ import ProfileLaws
    explicit all-occurrence scope includes nested occurrences. A result preserves
    the path, matched term and bindings, in traversal order, including duplicate
    occurrences. Neither scope computes logical consequences.
+
+   OccurrenceLaws proves that executable path lookup finds exactly the enumerated
+   labels, traversal paths are strictly lexicographically ordered and unique,
+   and appending roots preserves the old traversal with precisely offset new
+   paths. These laws concern the native ordered forest, including repeated equal
+   trees. They do not prescribe application chronology or memory grouping.
 
    A targeted replacement changes one existing occurrence, retains unrelated
    occurrences, does not traverse its inserted replacement and does not relocate
