@@ -3,8 +3,9 @@ import Language
 /- SCIR is a language specification, formalized in Lean.
 
    The normative native format and opt-in profile contracts live in
-   proofs/Language.lean. SymbolLaws, SubstitutionLaws, DefinitionLaws and
-   ProfileLaws establish their explicitly stated mathematical invariants.
+   proofs/Language.lean. SymbolLaws, SubstitutionLaws, DefinitionLaws,
+   ProfileLaws and OccurrenceLaws establish their explicitly stated mathematical
+   invariants. OccurrenceLaws adds exact path coverage, preorder and append laws.
    NativeCodec and the reference modules are executable specification oracles,
    not an application runtime or a published content-library API.
 

@@ -25,6 +25,10 @@ run_cmd do
     `SCIR.Symbols.labelMap_prefix, `SCIR.Symbols.labelMap_locate,
     `SCIR.Symbols.occurrence_preservation, `SCIR.Symbols.document_identity,
     `SCIR.Symbols.document_composition, `SCIR.Symbols.document_occurrence_preservation,
+    `SCIR.Occurrences.lookup_coverage, `SCIR.Occurrences.document_coverage,
+    `SCIR.Occurrences.occurrences_ordered, `SCIR.Occurrences.document_ordered,
+    `SCIR.Occurrences.document_paths_unique, `SCIR.Occurrences.document_append,
+    `SCIR.Occurrences.append_batches,
     `SCIR.Substitution.substitution_sound, `SCIR.Substitution.substitution_complete,
     `SCIR.Substitution.substitution_identity, `SCIR.Substitution.substitution_variable,
     `SCIR.Substitution.substitution_composition, `SCIR.Substitution.instantiation_complete,
@@ -49,6 +53,7 @@ run_cmd do
       count := count + 1
   let evaluators := #[
     `SCIR.Symbols.relabel, `SCIR.Symbols.documentOccurrences,
+    `SCIR.Occurrences.lookup, `SCIR.Occurrences.lookupDocument,
     `SCIR.Substitution.substitute, `SCIR.Substitution.instantiate, `SCIR.Substitution.matchReference,
     `SCIR.Definitions.plug, `SCIR.Definitions.select,
     `SCIR.SymbolReference.evaluate, `SCIR.SubstitutionReference.evaluate, `SCIR.DefinitionReference.evaluate,

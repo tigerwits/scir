@@ -10,7 +10,7 @@ mkdir -p "$scir_build"
 test "$(cat lean-toolchain)" = 'leanprover/lean4:v4.19.0'
 sha256sum --check --strict conformance/SHA256SUMS
 export LEAN_PATH="$scir_build"
-scir_modules=(ProfileLaws SymbolLaws SubstitutionLaws DefinitionLaws Language ConformanceOrigins StrictJson Sha256 ReferenceCodec SymbolReference SubstitutionReference DefinitionReference NativeCodec WorkingSpec BoundaryTests NativeCorpus DefinitionCorpus)
+scir_modules=(ProfileLaws SymbolLaws OccurrenceLaws SubstitutionLaws DefinitionLaws Language ConformanceOrigins StrictJson Sha256 ReferenceCodec SymbolReference SubstitutionReference DefinitionReference NativeCodec WorkingSpec BoundaryTests NativeCorpus DefinitionCorpus)
 for scir_module in "${scir_modules[@]}"; do
   "$scir_lean" -DwarningAsError=true -o "$scir_build/$scir_module.olean" "proofs/$scir_module.lean" > "$scir_build/$scir_module.log" 2>&1 || { cat "$scir_build/$scir_module.log"; exit 1; }
 done
